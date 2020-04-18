@@ -1,13 +1,22 @@
 #! /usr/bin/env python
 #  -*- coding: utf-8 -*-
+
+'''
+Anomaly Detection of GPS Spoofing Attacks on UAVs
+Authors: Lior Pizman & Yehuda Pashay
+GitHub: https://github.com/liorpizman/AnomalyDetection
+DataSets: 1. ADS-B dataset 2. simulated data
+---
+Existing algorithms window which is part of GUI application
+'''
+
 import os
 import win32api
 
 from tkinter import END
-from tkinter.ttk import Combobox
 from gui.widgets.menubar import Menubar
-from gui.shared.helper_methods import CROSS_WINDOWS_SETTINGS, set_path
-from gui.shared.inputs_validation_helper import is_valid_model_paths
+from gui.shared.helper_methods import CROSS_WINDOWS_SETTINGS, set_path, clear_text
+from gui.shared.inputs_validation_helper import is_valid_model_paths, is_valid_model_data_file
 from gui.widgets_configurations.helper_methods import set_widget_to_left, set_logo_configuration, \
     set_button_configuration, set_copyright_configuration
 
@@ -27,12 +36,54 @@ except ImportError:
 
 
 class ExistingAlgorithmsWindow(tk.Frame):
+    """
+    A Class used to enable the user load existing machine learning model
+
+    Methods
+    -------
+    reset_widgets()
+            Description | Reset check bar values
+
+    back_window()
+            Description | Handle back button click
+
+    set_input_entry()
+            Description | Set input entry and update the state
+
+    set_algorithm_path()
+            Description | Set the algorithm path in the UI
+
+    next_window()
+            Description |  Handle next button click
+
+    validate_next_step()
+            Description | Validation before approving the move to the next window
+
+    update_selected_algorithms()
+            Description | Updates local variables which algorithms were selected by the user
+
+    set_load_model_parameters()
+            Description | Updates input settings and move to next window
+
+    """
 
     def __init__(self, parent, controller):
+
+        """
+        Parameters
+        ----------
+
+        :param parent: window
+        :param controller: GUI controller
+        """
+
         tk.Frame.__init__(self, parent)
+
+        # Page init
         self.controller = controller
         self.menubar = Menubar(controller)
-        self.controller.option_add('*tearOff', 'FALSE')  # Disables ability to tear menu bar into own window
+        # Disables ability to tear menu bar into own window
+        self.controller.option_add('*tearOff', 'FALSE')
         system_logo = CROSS_WINDOWS_SETTINGS.get('LOGO')
         photo_location = os.path.join(system_logo)
         global logo_img
@@ -46,9 +97,10 @@ class ExistingAlgorithmsWindow(tk.Frame):
         self.instructions = tk.Label(self)
         self.instructions.place(relx=0.015, rely=0.3, height=32, width=635)
         self.instructions.configure(
-            text='''Please insert paths of existing models_1.''')
+            text='''Please insert paths for existing models.''')
         set_widget_to_left(self.instructions)
 
+        # Page body
         self.algorithms = dict()
         self.browse_buttons = dict()
         self.input_entries = dict()
@@ -74,81 +126,70 @@ class ExistingAlgorithmsWindow(tk.Frame):
         self.browse_buttons["LSTM"] = self.lstm_btn
         self.input_entries["LSTM"] = self.lstm_input
 
-        # One Class SVM existing algorithm
-        self.ocsvm_var = tk.IntVar()
-        self.ocsvm_check_button = tk.Checkbutton(self)
-        self.ocsvm_check_button.place(relx=0.015, rely=0.47, height=32, width=146)
-        self.ocsvm_check_button.configure(text="One Class SVM",
-                                          variable=self.ocsvm_var,
-                                          command=lambda: self.set_input_entry("OCSVM", self.lstm_var.get()))
-        set_widget_to_left(self.ocsvm_check_button)
+        # SVR existing algorithm
+        self.svr_var = tk.IntVar()
+        self.svr_check_button = tk.Checkbutton(self)
+        self.svr_check_button.place(relx=0.015, rely=0.47, height=32, width=146)
+        self.svr_check_button.configure(text="SVR",
+                                        variable=self.svr_var,
+                                        command=lambda: self.set_input_entry("SVR", self.svr_var.get()))
+        set_widget_to_left(self.svr_check_button)
 
-        self.ocsvm_input = tk.Entry(self)
-        self.ocsvm_input.place(relx=0.195, rely=0.47, height=25, relwidth=0.624)
-        self.ocsvm_input.configure(state='disabled')
+        self.svr_input = tk.Entry(self)
+        self.svr_input.place(relx=0.195, rely=0.47, height=25, relwidth=0.624)
+        self.svr_input.configure(state='disabled')
 
-        self.ocsvm_btn = tk.Button(self, command=lambda: self.set_algorithm_path("OCSVM"))
-        self.ocsvm_btn.place(relx=0.833, rely=0.47, height=25, width=60)
-        self.ocsvm_btn.configure(state='disabled')
-        set_button_configuration(self.ocsvm_btn, text='''Browse''')
+        self.svr_btn = tk.Button(self, command=lambda: self.set_algorithm_path("SVR"))
+        self.svr_btn.place(relx=0.833, rely=0.47, height=25, width=60)
+        self.svr_btn.configure(state='disabled')
+        set_button_configuration(self.svr_btn, text='''Browse''')
 
-        self.browse_buttons["OCSVM"] = self.ocsvm_btn
-        self.input_entries["OCSVM"] = self.ocsvm_input
+        self.browse_buttons["SVR"] = self.svr_btn
+        self.input_entries["SVR"] = self.svr_input
 
-        # KNN existing algorithm
-        self.knn_var = tk.IntVar()
-        self.knn_check_button = tk.Checkbutton(self)
-        self.knn_check_button.place(relx=0.015, rely=0.56, height=32, width=146)
-        self.knn_check_button.configure(text="KNN",
-                                        variable=self.knn_var,
-                                        command=lambda: self.set_input_entry("KNN", self.knn_var.get()))
-        set_widget_to_left(self.knn_check_button)
+        # Linear Regression existing algorithm
+        self.linear_regression_var = tk.IntVar()
+        self.linear_regression_check_button = tk.Checkbutton(self)
+        self.linear_regression_check_button.place(relx=0.015, rely=0.56, height=32, width=146)
+        self.linear_regression_check_button.configure(text="Linear Regression",
+                                                      variable=self.linear_regression_var,
+                                                      command=lambda: self.set_input_entry("Linear Regression",
+                                                                                           self.linear_regression_var.get()))
+        set_widget_to_left(self.linear_regression_check_button)
 
-        self.knn_input = tk.Entry(self)
-        self.knn_input.place(relx=0.195, rely=0.56, height=25, relwidth=0.624)
-        self.knn_input.configure(state='disabled')
+        self.linear_regression_input = tk.Entry(self)
+        self.linear_regression_input.place(relx=0.195, rely=0.56, height=25, relwidth=0.624)
+        self.linear_regression_input.configure(state='disabled')
 
-        self.knn_btn = tk.Button(self, command=lambda: self.set_algorithm_path("KNN"))
-        self.knn_btn.place(relx=0.833, rely=0.56, height=25, width=60)
-        self.knn_btn.configure(state='disabled')
-        set_button_configuration(self.knn_btn, text='''Browse''')
+        self.linear_regression_btn = tk.Button(self, command=lambda: self.set_algorithm_path("Linear Regression"))
+        self.linear_regression_btn.place(relx=0.833, rely=0.56, height=25, width=60)
+        self.linear_regression_btn.configure(state='disabled')
+        set_button_configuration(self.linear_regression_btn, text='''Browse''')
 
-        self.browse_buttons["KNN"] = self.knn_btn
-        self.input_entries["KNN"] = self.knn_input
+        self.browse_buttons["Linear Regression"] = self.linear_regression_btn
+        self.input_entries["Linear Regression"] = self.linear_regression_input
 
-        # Isolation Forest existing algorithm
-        self.isolation_forest_var = tk.IntVar()
-        self.isolation_forest_check_button = tk.Checkbutton(self)
-        self.isolation_forest_check_button.place(relx=0.015, rely=0.65, height=32, width=146)
-        self.isolation_forest_check_button.configure(text="Isolation forest",
-                                                     variable=self.isolation_forest_var,
-                                                     command=lambda: self.set_input_entry("isolation_forest",
-                                                                                          self.isolation_forest_var.get()))
-        set_widget_to_left(self.isolation_forest_check_button)
+        # Random Forest existing algorithm
+        self.random_forest_var = tk.IntVar()
+        self.random_forest_check_button = tk.Checkbutton(self)
+        self.random_forest_check_button.place(relx=0.015, rely=0.65, height=32, width=146)
+        self.random_forest_check_button.configure(text="Random Forest",
+                                                  variable=self.random_forest_var,
+                                                  command=lambda: self.set_input_entry("Random Forest",
+                                                                                       self.random_forest_var.get()))
+        set_widget_to_left(self.random_forest_check_button)
 
-        self.isolation_forest_input = tk.Entry(self)
-        self.isolation_forest_input.place(relx=0.195, rely=0.65, height=25, relwidth=0.624)
-        self.isolation_forest_input.configure(state='disabled')
+        self.random_forest_input = tk.Entry(self)
+        self.random_forest_input.place(relx=0.195, rely=0.65, height=25, relwidth=0.624)
+        self.random_forest_input.configure(state='disabled')
 
-        self.isolation_forest_btn = tk.Button(self, command=lambda: self.set_algorithm_path("isolation_forest"))
-        self.isolation_forest_btn.place(relx=0.833, rely=0.65, height=25, width=60)
-        self.isolation_forest_btn.configure(state='disabled')
-        set_button_configuration(self.isolation_forest_btn, text='''Browse''')
+        self.random_forest_btn = tk.Button(self, command=lambda: self.set_algorithm_path("Random Forest"))
+        self.random_forest_btn.place(relx=0.833, rely=0.65, height=25, width=60)
+        self.random_forest_btn.configure(state='disabled')
+        set_button_configuration(self.random_forest_btn, text='''Browse''')
 
-        self.browse_buttons["isolation_forest"] = self.isolation_forest_btn
-        self.input_entries["isolation_forest"] = self.isolation_forest_input
-
-        # Threshold
-        self.threshold_list = [0.9, 0.8, 0.7]
-
-        self.threshold = tk.Label(self)
-        self.threshold.place(relx=0.015, rely=0.74, height=32, width=150)
-        self.threshold.configure(text='''Threshold''')
-        set_widget_to_left(self.threshold)
-
-        self.threshold_combo = Combobox(self, values=self.threshold_list)
-        self.threshold_combo.place(relx=0.195, rely=0.74, height=25, relwidth=0.154)
-        self.threshold_combo.current(0)
+        self.browse_buttons["Random Forest"] = self.random_forest_btn
+        self.input_entries["Random Forest"] = self.random_forest_input
 
         # Page footer
         self.next_button = tk.Button(self, command=self.next_window)
@@ -163,11 +204,58 @@ class ExistingAlgorithmsWindow(tk.Frame):
         self.copyright.place(relx=0, rely=0.958, height=25, width=750)
         set_copyright_configuration(self.copyright)
 
+    def reset_widgets(self):
+        """
+        Reset check bar values
+        :return: empty values in the widgets
+        """
+
+        widgets = [
+            self.lstm_input,
+            self.svr_input,
+            self.linear_regression_input,
+            self.random_forest_input
+        ]
+
+        variables = [
+            self.lstm_var,
+            self.svr_var,
+            self.linear_regression_var,
+            self.random_forest_var
+        ]
+
+        check_buttons = [
+            self.lstm_check_button,
+            self.svr_check_button,
+            self.linear_regression_check_button,
+            self.random_forest_check_button
+        ]
+
+        for widget in widgets:
+            clear_text(widget)
+            widget['state'] = 'disabled'
+
+        for var, check_button in zip(variables, check_buttons):
+            var.set(0)
+            check_button['variable'] = var
+
     def back_window(self):
+        """
+        Handle back button click
+        :return: previous window
+        """
+
         self.controller.set_new_model_running(False)
         self.controller.show_frame("MainWindow")
 
     def set_input_entry(self, entry_name, state):
+        """
+        Set input entry and update the state
+        :param entry_name: input's algorithm name
+        :param state: input's state
+        :return: updated input
+        """
+
         if state:
             self.browse_buttons[entry_name]['state'] = 'active'
             self.input_entries[entry_name]['state'] = 'normal'
@@ -179,34 +267,68 @@ class ExistingAlgorithmsWindow(tk.Frame):
             self.algorithms.pop(entry_name, None)
 
     def set_algorithm_path(self, algorithm):
+        """
+        Set the algorithm path in the UI
+        :param algorithm: input algorithm
+        :return: updated state
+        """
+
         self.input_entries[algorithm].delete(0, END)
         path = set_path()
         self.input_entries[algorithm].insert(0, path)
 
     def next_window(self):
+        """
+        Handle next button click
+        :return: if validations pass move to next window
+        """
+
         self.update_selected_algorithms()
         if self.validate_next_step():
             self.set_load_model_parameters()
 
     def validate_next_step(self):
+        """
+        Validation before approving the move to the next window
+        :return:
+        """
+
         if not self.algorithms:
             win32api.MessageBox(0, 'Please select algorithm & path for the model before the next step.',
                                 'Invalid algorithm', 0x00001000)
             return False
 
         if not is_valid_model_paths(self.algorithms.values()):
-            win32api.MessageBox(0, 'At least one of your inputs is invalid or not in type of .h5 file!',
+            win32api.MessageBox(0, 'At least one of your algorithms paths invalid or not include the required files!',
                                 'Invalid inputs', 0x00001000)
             return False
+
+        if not is_valid_model_data_file(self.algorithms.values()):
+            win32api.MessageBox(0,
+                                'At least one of the required data is missing in model_data json file!',
+                                'Missing data', 0x00001000)
+            return False
+
         return True
 
     def update_selected_algorithms(self):
+        """
+        Updates local variables which algorithms were selected by the user
+        :return: updated selection
+        """
+
         tmp_algorithms = dict()
+
         for algorithm in self.algorithms:
             tmp_algorithms[algorithm] = self.input_entries[algorithm].get()
+
         self.algorithms = tmp_algorithms
 
     def set_load_model_parameters(self):
+        """
+        Updates input settings and move to next window
+        :return: next window
+        """
+
         self.controller.set_existing_algorithms(self.algorithms)
-        self.controller.set_existing_algorithms_threshold(float(self.threshold_combo.get()))
-        self.controller.show_frame("SimilarityFunctionsWindow")
+        self.controller.reinitialize_frame("SimilarityFunctionsWindow")

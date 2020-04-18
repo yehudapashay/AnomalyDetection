@@ -1,8 +1,16 @@
+# Anomaly Detection of GPS Spoofing Attacks on UAVs
+# Authors: Lior Pizman & Yehuda Pashay
+# GitHub: https://github.com/liorpizman/AnomalyDetection
+# DataSets: 1. ADS-B dataset 2. simulated data
+# ----------------------------------------------------------------------------------
+# Serialized data used for visualization of anomaly detection methods and comparison options
+# ----------------------------------------------------------------------------------
+
 anomaly_detection_methods:
   - LSTM
-  - One Class SVM (OCSVM)
-  - KNN
-  - Isolation Forest
+  - SVR
+  - Linear Regression
+  - Random Forest
 
 feature_selection_methods:
   - Information gain
@@ -11,5 +19,6 @@ feature_selection_methods:
 
 similarity_functions:
   - Cosine similarity
-  - Mahalanubis distance
+  - Mahalanobis distance
   - MSE
+  - Euclidean distance

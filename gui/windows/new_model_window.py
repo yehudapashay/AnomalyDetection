@@ -1,9 +1,19 @@
 #! /usr/bin/env python
 #  -*- coding: utf-8 -*-
+
+'''
+Anomaly Detection of GPS Spoofing Attacks on UAVs
+Authors: Lior Pizman & Yehuda Pashay
+GitHub: https://github.com/liorpizman/AnomalyDetection
+DataSets: 1. ADS-B dataset 2. simulated data
+---
+New model window which is part of GUI application
+'''
+
 import os
 
 from gui.widgets.menubar import Menubar
-from gui.shared.helper_methods import set_path, CROSS_WINDOWS_SETTINGS
+from gui.shared.helper_methods import set_path, CROSS_WINDOWS_SETTINGS, clear_text
 from gui.widgets_configurations.helper_methods import set_copyright_configuration, set_logo_configuration, \
     set_button_configuration, set_widget_to_left
 from gui.shared.inputs_validation_helper import new_model_paths_validation
@@ -25,12 +35,51 @@ except ImportError:
 
 
 class NewModel(tk.Frame):
+    """
+    A Class used to get all the paths from the user in order to create new models
+
+    Methods
+    -------
+    reset_widgets()
+            Description | Reset check bar values
+
+    set_input_path()
+            Description | Set the train data set path to entry widget
+
+    set_test_path()
+            Description | Set the test data set path to entry widget
+
+    set_results_path()
+            Description | Set the results path to entry widget
+
+    back_window()
+            Description | Handle a click on back button
+
+    next_window()
+            Description | Handle a click on next button
+
+    set_new_model_parameters()
+            Description | Set parameters to new model flow
+
+    """
 
     def __init__(self, parent, controller):
+
+        """
+        Parameters
+        ----------
+
+        :param parent: window
+        :param controller: GUI controller
+        """
+
         tk.Frame.__init__(self, parent)
+
+        # Page init
         self.controller = controller
         self.menubar = Menubar(controller)
-        self.controller.option_add('*tearOff', 'FALSE')  # Disables ability to tear menu bar into own window
+        # Disables ability to tear menu bar into own window
+        self.controller.option_add('*tearOff', 'FALSE')
         system_logo = CROSS_WINDOWS_SETTINGS.get('LOGO')
         photo_location = os.path.join(system_logo)
         global logo_img
@@ -46,6 +95,8 @@ class NewModel(tk.Frame):
         self.instructions.configure(
             text='''Please insert 'Mobilicom Ltd' simulated data / ADS-B dataset input files.''')
         set_widget_to_left(self.instructions)
+
+        # Page body
 
         # Training input directory
         self.training_label = tk.Label(self)
@@ -103,51 +154,95 @@ class NewModel(tk.Frame):
         self.set_inputs_second_permutation()
         # ------------------------------- end ------------------------------------------------------------------------
 
+    def reset_widgets(self):
+        """
+        Reset check bar values
+        :return: empty values in the widgets
+        """
+
+        widgets = [
+            self.training_input,
+            self.test_input,
+            self.results_input
+        ]
+
+        for widget in widgets:
+            clear_text(widget)
+
     def set_input_path(self):
+        """
+        Set the train data set path to entry widget
+        :return: updated train path
+        """
+
         self.training_input.delete(0, END)
         path = set_path()
         self.training_input.insert(0, path)
 
     def set_test_path(self):
+        """
+        Set the test data set path to entry widget
+        :return: updated test path
+        """
+
         self.test_input.delete(0, END)
         path = set_path()
         self.test_input.insert(0, path)
 
     def set_results_path(self):
+        """
+        Set the results path to entry widget
+        :return: updated results path
+        """
+
         self.results_input.delete(0, END)
         path = set_path()
         self.results_input.insert(0, path)
 
     def back_window(self):
+        """
+        Handle back button click
+        :return: previous window
+        """
+
         self.controller.set_new_model_running(False)
         self.controller.show_frame("MainWindow")
 
     def next_window(self):
+        """
+        Handle a click on next button
+        :return: if validations pass move to next window
+        """
+
         if new_model_paths_validation(self.training_input.get(), self.test_input.get(), self.results_input.get()):
             self.set_new_model_parameters()
-            self.controller.reinitialize_frame("AlgorithmsWindow")
+            self.controller.show_frame("AlgorithmsWindow")
 
     def set_new_model_parameters(self):
+        """
+        Set parameters to new model flow
+        :return: updated parameters in new model flow in the system
+        """
+
         self.controller.set_new_model_training_input_path(self.training_input.get())
         self.controller.set_new_model_test_input_path(self.test_input.get())
         self.controller.set_new_model_results_input_path(self.results_input.get())
-        self.controller.set_new_model_running(True)
         self.controller.set_features_columns_options()
 
     # -------------------------------should be replaced at final submission  -------------------------------------
 
     def set_inputs_first_permutation(self):
         self.set_permutations(
-            training_path="C:\\Users\\Lior\\Desktop\\ADS-B Data Set\\input_for_training",
-            test_path="C:\\Users\\Lior\\Desktop\\ADS-B Data Set\\input_for_testing",
+            training_path="C:\\Users\\Lior\\Desktop\\ADS-B Data Set\\train",
+            test_path="C:\\Users\\Lior\\Desktop\\ADS-B Data Set\\test",
             results_path="C:\\Users\\Lior\\Desktop\\ADS-B Data Set\\results"
         )
 
     def set_inputs_second_permutation(self):
         self.set_permutations(
-            training_path="C:\\Users\\Yehuda Pashay\\Desktop\\check\\flights_data\\check_data\\input_for_training",
-            test_path="C:\\Users\\Yehuda Pashay\\Desktop\\check\\flights_data\\check_data\\input_for_testing",
-            results_path="C:\\Users\\Yehuda Pashay\\Desktop\\check\\flights_data\\check_data\\results"
+            training_path="C:\\Users\\Yehuda Pashay\\Desktop\\flight_data\\data_set\\train",
+            test_path="C:\\Users\\Yehuda Pashay\\Desktop\\flight_data\\data_set\\test",
+            results_path="C:\\Users\\Yehuda Pashay\\Desktop\\flight_data\\data_set\\results\\new_model_results"
         )
 
     def set_permutations(self, training_path, test_path, results_path):

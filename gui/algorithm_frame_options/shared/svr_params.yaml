@@ -1,0 +1,52 @@
+# Anomaly Detection of GPS Spoofing Attacks on UAVs
+# Authors: Lior Pizman & Yehuda Pashay
+# GitHub: https://github.com/liorpizman/AnomalyDetection
+# DataSets: 1. ADS-B dataset 2. simulated data
+# ----------------------------------------------------------------------------------
+# Serialized data used for SVR algorithm
+# ----------------------------------------------------------------------------------
+
+# The values are the text params for each label in SVR frame options
+# Must be: 1st list in current yaml file
+widget_names:
+  - "Kernel"
+  - "Gamma"
+  - "Epsilon"
+  - "Threshold"
+
+# The values are the keys of the parameters in the helper method file
+# For example: 'frame.parameters[param_key] = frame.algorithm_param_combo'  (param_key is each value in the list)
+# Moreover, the amount of values here should be same as the amount of values in the list above
+# Must be: 2nd list in current yaml file
+widget_param_keys:
+  - "kernel"
+  - "gamma"
+  - "epsilon"
+  - "threshold"
+
+# All the lists in the bottom represent the values in each combobox which will be displayed.
+# Should be: It is better that the keys of the lists will be informative but they can be every string you want
+svr_kernel:
+  - "linear"
+  - "poly"
+  - "rbf"
+  - "sigmoid"
+  - "precomputed"
+
+svr_gamma:
+  - "auto"
+  - "scale"
+
+svr_epsilon:
+  - 0.01
+  - 0.05
+  - 0.1
+  - 0.15
+  - 0.2
+
+svr_threshold:
+  - 0.99
+  - 0.98
+  - 0.97
+  - 0.96
+  - 0.95
