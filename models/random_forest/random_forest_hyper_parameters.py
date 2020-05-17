@@ -16,15 +16,19 @@ class random_forest_hyper_parameters:
     A Class used to hyper Random forest parameters
     """
 
+    WINDOW_SIZE = None
     N_ESTIMATORS = None
     CRITERION = None
     MAX_FEATURES = None
     RANDOM_STATE = None
     THRESHOLD = None
 
+    DEFAULT_THRESHOLD = 0.99
     """
     Attributes
     ----------
+    WINDOW_SIZE                                : int
+    
     N_ESTIMATORS                               : int
 
     CRITERION                                  : str 
@@ -37,52 +41,74 @@ class random_forest_hyper_parameters:
 
     Methods
     -------
-    set_n_estimators()
+    set_window_size(window_size)
+        Description | Set new value for window size
+
+    remove_window_size(window_size)
+            Description | Remove current value of window size
+            
+    get_window_size()
+            Description | Get current value of window size
+            
+    set_n_estimators(n_estimators)
             Description | Set new value for n estimators
 
-    remove_n_estimators()
+    remove_n_estimators(n_estimators)
             Description | Remove current value of n estimators
             
     get_n_estimators()
             Description | Get current value of n estimators
 
-    set_criterion()
+    set_criterion(criterion)
             Description | Set new value for criterion
 
-    remove_criterion()
+    remove_criterion(criterion)
             Description | Remove current value of criterion
             
     get_criterion()
             Description | Get current value of criterion
             
-    set_max_features()
+    set_max_features(max_features)
             Description | Set new value for max features
 
-    remove_max_features()
+    remove_max_features(max_features)
             Description | Remove current value of max features
             
     get_max_features()
             Description | Get current value of max features
             
-    set_random_state()
+    set_random_state(random_state)
             Description | Set new value for random state
 
-    remove_random_state()
+    remove_random_state(random_state)
             Description | Remove current value of random state
             
     get_random_state()
             Description | Get current value of random state
             
-    set_threshold()
+    set_threshold(threshold)
             Description | Set new value for threshold
 
-    remove_threshold()
+    remove_threshold(threshold)
             Description | Remove current value of threshold
             
     get_threshold()
             Description | Get current value of threshold
 
     """
+
+    # Window size parameter
+    @staticmethod
+    def set_window_size(window_size):
+        random_forest_hyper_parameters.WINDOW_SIZE = int(window_size)
+
+    @staticmethod
+    def remove_window_size(window_size):
+        random_forest_hyper_parameters.WINDOW_SIZE = None
+
+    @staticmethod
+    def get_window_size():
+        return random_forest_hyper_parameters.WINDOW_SIZE
 
     # N estimators parameter
     @staticmethod
@@ -136,10 +162,13 @@ class random_forest_hyper_parameters:
     def get_random_state():
         return random_forest_hyper_parameters.RANDOM_STATE
 
-    # N estimators parameter
+    # Threshold parameter
     @staticmethod
     def set_threshold(threshold):
-        random_forest_hyper_parameters.THRESHOLD = float(threshold)
+        try:
+            random_forest_hyper_parameters.THRESHOLD = float(threshold)
+        except:
+            random_forest_hyper_parameters.THRESHOLD = random_forest_hyper_parameters.DEFAULT_THRESHOLD
 
     @staticmethod
     def remove_threshold():

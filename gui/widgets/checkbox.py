@@ -13,6 +13,7 @@ Check bar which is presented in the application
 from tkinter import *
 
 from gui.shared.helper_methods import load_anomaly_detection_list
+from gui.widgets.hover_button import HoverButton
 from gui.widgets_configurations.helper_methods import set_widget_to_left
 
 
@@ -46,8 +47,8 @@ class Checkbar(Frame):
     show_SVR_options()
             Description | Callback to open SVR parameters options
 
-    show_Linear_Regression_options()
-            Description | Callback to open Linear Regression parameters options
+    show_MLP_options()
+            Description | Callback to open MLP parameters options
 
     show_Random_Forest_options()
             Description | Callback to open Random forest parameters options
@@ -96,12 +97,13 @@ class Checkbar(Frame):
 
             if editButtons:
                 # Create a configuration button dynamically
-                edit_button = Button(self,
-                                     text=pick + " configuration",
-                                     state='disabled',
-                                     command=algorithm_show_function)
+                edit_button = HoverButton(self,
+                                          text=pick + " configuration",
+                                          state='disabled',
+                                          command=algorithm_show_function)
 
                 edit_button.place(relx=relX + 0.35, rely=relY, height=30, width=220)
+                edit_button.configure(cursor="hand2")
                 self.buttons.append(edit_button)
             self.vars.append(var)
             self.checks.append(check_button)
@@ -177,10 +179,10 @@ class Checkbar(Frame):
 
         self.parent.show_algorithms_options(load_anomaly_detection_list()[1])
 
-    def show_Linear_Regression_options(self):
+    def show_MLP_options(self):
         """
-        Callback to open Linear Regression parameters options
-        :return: suitable parameters for Linear Regression algorithm
+        Callback to open MLP parameters options
+        :return: suitable parameters for MLP algorithm
         """
 
         self.parent.show_algorithms_options(load_anomaly_detection_list()[2])
@@ -206,7 +208,7 @@ class Checkbar(Frame):
         switcher = {
             algorithms[0]: self.show_LSTM_options,
             algorithms[1]: self.show_SVR_options,
-            algorithms[2]: self.show_Linear_Regression_options,
+            algorithms[2]: self.show_MLP_options,
             algorithms[3]: self.show_Random_Forest_options
         }
 

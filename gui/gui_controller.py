@@ -13,11 +13,16 @@ Anomaly detection graphic user interface controller which is used to map all the
 from tkinter import font as tkfont
 from gui.windows.algorithms_window import AlgorithmsWindow
 from gui.windows.existing_algorithms_window import ExistingAlgorithmsWindow
+from gui.windows.feature_selection_window import FeatureSelectionWindow
+from gui.windows.pre_tune_window import PreTuneModel
+from gui.windows.tune_model_window import TuneModel
 from gui.windows.load_model_window import LoadModel
 from gui.windows.loading_window import LoadingWindow
 from gui.windows.parameters_options_window import ParametersOptionsWindow
 from gui.windows.main_window import MainWindow
 from gui.windows.results_table_window import ResultsTableWindow
+from gui.windows.tune_results_window import TuneResultsWindow
+from gui.windows.tuning_loading_window import TuningLoadingWindow
 from utils.model_controller import ModelController
 from gui.windows.new_model_window import NewModel
 from gui.windows.results_window import ResultsWindow
@@ -78,7 +83,7 @@ class AnomalyDetectionGUI(tk.Tk):
     set_saving_model(save_model)
             Description | Set the variable which indicates whether the user want to save the current model or not
 
-    run_models()
+    run_models(algorithm, similarity_score, test_data_path, results_path, new_model_running)
             Description | Execute models creation/loading process
 
     set_new_model_running(new_model_running)
@@ -95,8 +100,8 @@ class AnomalyDetectionGUI(tk.Tk):
     get_features_columns_options()
             Description | Get the data set columns which were loaded from the test data set
 
-    set_users_selected_features(algorithm_name, features_list)
-            Description | Set the data set columns which were selected by the user for a given algorithm
+    set_users_selected_features(features_list, target_features_list)
+            Description | Set the data set columns which were selected by the user
 
     add_new_thread(new_thread)
             Description | Add new running thread to the system
@@ -145,6 +150,62 @@ class AnomalyDetectionGUI(tk.Tk):
             Description | Get a dictionary which includes all the algorithm which were chosen by the user in a load
                           existing models flow
 
+    get_similarity_functions()
+            Description | Get all similarity functions which were chosen by the user
+
+    set_results_selected_similarity_function(similarity_function)
+            Description | Set the variable which indicates which similarity function should be shown in the results
+                          table at this moment
+
+    get_results_selected_similarity_function()
+            Description | Get the variable which indicates which similarity function should be shown in the results
+                          table at this moment
+
+    get_results_metrics_data()
+            Description |  Get the dictionary which includes all the metrics for the current flow
+
+    set_tune_model_input_path(input_path)
+            Description | Set the path for data for tuning a model
+
+    get_tune_model_input_path()
+            Description | Get the path for data for tuning a model
+
+    set_tune_model_features()
+            Description | Set features list for tune model flow
+
+    get_tune_model_features()
+            Description | Get features list for tune model flow
+
+     set_tune_model_configuration(input_features, target_features, window_size, algorithm)
+         Description | Set full configuration for tune model flow
+
+    get_tune_flow_input_features()
+            Description | Get input features for tune model flow
+
+    get_tune_flow_target_features()
+            Description | Get target features for tune model flow
+
+    get_tune_flow_window_size()
+            Description | Get window sizes for tune model flow
+
+    get_tune_flow_algorithm()
+            Description | Get algorithm for tune model flow
+
+    set_tune_model_results_path(input_path)
+            Description | Set the path for results for tuning a model
+
+    get_tune_model_results_path()
+            Description | Get the path for results for tuning a model
+
+    run_tuning()
+            Description | Execute models tuning process
+
+    get_window_size(algorithm)
+            Description | Get the chosen window size for a specific algorithm
+
+    init_models()
+            Description | Init models dictionary
+
     """
 
     def __init__(self, *args, **kwargs):
@@ -182,13 +243,18 @@ class AnomalyDetectionGUI(tk.Tk):
         for F in (MainWindow,
                   NewModel,
                   LoadModel,
+                  PreTuneModel,
+                  TuneModel,
                   AlgorithmsWindow,
+                  FeatureSelectionWindow,
                   SimilarityFunctionsWindow,
                   ExistingAlgorithmsWindow,
                   LoadingWindow,
                   ResultsWindow,
                   ParametersOptionsWindow,
-                  ResultsTableWindow):
+                  ResultsTableWindow,
+                  TuningLoadingWindow,
+                  TuneResultsWindow):
             page_name = F.__name__
 
             # Init each frame
@@ -252,8 +318,9 @@ class AnomalyDetectionGUI(tk.Tk):
     def set_saving_model(self, save_model):
         self.model_controller.set_saving_model(save_model)
 
-    def run_models(self):
-        self.model_controller.run_models()
+    def run_models(self, algorithm, similarity_score, test_data_path, results_path, new_model_running, event):
+        self.model_controller.run_models(algorithm, similarity_score, test_data_path,
+                                         results_path, new_model_running, event)
 
     def set_new_model_running(self, new_model_running):
         self.model_controller.set_new_model_running(new_model_running)
@@ -267,8 +334,8 @@ class AnomalyDetectionGUI(tk.Tk):
     def get_features_columns_options(self):
         return self.model_controller.get_features_columns_options()
 
-    def set_users_selected_features(self, algorithm_name, features_list):
-        self.model_controller.set_users_selected_features(algorithm_name, features_list)
+    def set_users_selected_features(self, features_list, target_features_list):
+        self.model_controller.set_users_selected_features(features_list, target_features_list)
 
     def add_new_thread(self, new_thread):
         self.model_controller.add_new_thread(new_thread)
@@ -311,6 +378,60 @@ class AnomalyDetectionGUI(tk.Tk):
 
     def get_existing_algorithms(self):
         return self.model_controller.get_existing_algorithms()
+
+    def get_similarity_functions(self):
+        return self.model_controller.get_similarity_functions()
+
+    def set_results_selected_similarity_function(self, similarity_function):
+        self.model_controller.set_results_selected_similarity_function(similarity_function)
+
+    def get_results_selected_similarity_function(self):
+        return self.model_controller.get_results_selected_similarity_function()
+
+    def get_results_metrics_data(self):
+        return self.model_controller.get_results_metrics_data()
+
+    def set_tune_model_input_path(self, input_path):
+        self.model_controller.set_tune_model_input_path(input_path)
+
+    def get_tune_model_input_path(self):
+        return self.model_controller.get_tune_model_input_path()
+
+    def set_tune_model_features(self):
+        self.model_controller.set_tune_model_features()
+
+    def get_tune_model_features(self):
+        return self.model_controller.get_tune_model_features()
+
+    def set_tune_model_configuration(self, input_features, target_features, window_size, algorithm):
+        self.model_controller.set_tune_model_configuration(input_features, target_features, window_size, algorithm)
+
+    def get_tune_flow_input_features(self):
+        return self.model_controller.get_tune_flow_input_features()
+
+    def get_tune_flow_target_features(self):
+        return self.model_controller.get_tune_flow_target_features()
+
+    def get_tune_flow_window_size(self):
+        return self.model_controller.get_tune_flow_window_size()
+
+    def get_tune_flow_algorithm(self):
+        return self.model_controller.get_tune_flow_algorithm()
+
+    def set_tune_model_results_path(self, results_path):
+        self.model_controller.set_tune_model_results_path_path(results_path)
+
+    def get_tune_model_results_path_path(self):
+        return self.model_controller.get_tune_model_results_path_path()
+
+    def run_tuning(self):
+        self.model_controller.run_tuning()
+
+    def get_window_size(self, algorithm):
+        return self.model_controller.get_window_size(algorithm)
+
+    def init_models(self):
+        return self.model_controller.init_models()
 
 
 # Main loop of the Anomaly Detection application

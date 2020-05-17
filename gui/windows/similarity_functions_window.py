@@ -11,10 +11,11 @@ Similarity functions window which is part of GUI application
 '''
 
 import os
-
 import win32api
 
+from tkinter.font import Font, BOLD
 from gui.widgets.checkbox import Checkbar
+from gui.widgets.hover_button import HoverButton
 from gui.widgets.menubar import Menubar
 from gui.shared.helper_methods import load_similarity_list, CROSS_WINDOWS_SETTINGS
 from gui.widgets_configurations.helper_methods import set_widget_to_left, set_logo_configuration, \
@@ -94,12 +95,12 @@ class SimilarityFunctionsWindow(tk.Frame):
         self.instructions = tk.Label(self)
         self.instructions.place(relx=0.015, rely=0.3, height=32, width=635)
         self.instructions.configure(
-            text='''Please choose similarity functions from the following options:''')
+            text='''Please choose similarity functions from the following options.''')
         set_widget_to_left(self.instructions)
 
         # Page body
         self.similarity_functions = Checkbar(self, load_similarity_list(), checkCallback=self.set_similarity_score)
-        self.similarity_functions.place(relx=0.1, rely=0.35, height=400, width=700)
+        self.similarity_functions.place(relx=0.1, rely=0.36, height=400, width=700)
 
         self.save_model_var = tk.IntVar()
         self.save_model_check_button = tk.Checkbutton(self,
@@ -107,12 +108,19 @@ class SimilarityFunctionsWindow(tk.Frame):
                                                       variable=self.save_model_var,
                                                       command=self.set_saving_model)
 
+        self.note = tk.Label(self)
+        self.note.place(relx=0.015, rely=0.7, height=32, width=635)
+        self.note.configure(
+            text='''Note: Similarity function is used for calculating a score for each record''',
+            font=Font(size=9, weight=BOLD))
+        set_widget_to_left(self.note)
+
         # Page footer
-        self.next_button = tk.Button(self, command=self.next_window)
+        self.next_button = HoverButton(self, command=self.next_window)
         self.next_button.place(relx=0.813, rely=0.839, height=25, width=81)
         set_button_configuration(self.next_button, text='''Run''')
 
-        self.back_button = tk.Button(self, command=self.back_window)
+        self.back_button = HoverButton(self, command=self.back_window)
         self.back_button.place(relx=0.017, rely=0.839, height=25, width=81)
         set_button_configuration(self.back_button, text='''Back''')
 
@@ -158,6 +166,7 @@ class SimilarityFunctionsWindow(tk.Frame):
         Handle a click on next button
         :return: if validations pass move to next window
         """
+
         if self.similarity_functions_validation():
             self.controller.reinitialize_frame("LoadingWindow")
         else:
@@ -172,7 +181,7 @@ class SimilarityFunctionsWindow(tk.Frame):
         is_new_model_flow = self.controller.get_new_model_running()
 
         if is_new_model_flow:
-            self.controller.show_frame("AlgorithmsWindow")
+            self.controller.show_frame("FeatureSelectionWindow")
         else:
             self.controller.show_frame("ExistingAlgorithmsWindow")
 

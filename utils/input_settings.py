@@ -11,7 +11,7 @@ import os
 import pandas as pd
 
 from gui.shared.helper_methods import load_anomaly_detection_list
-from models.linear_regression.linear_regression_hyper_parameters import linear_regression_hyper_parameters
+from models.mlp.mlp_hyper_parameters import mlp_hyper_parameters
 from models.random_forest.random_forest_hyper_parameters import random_forest_hyper_parameters
 from models.svr.svr_hyper_parameters import svr_hyper_parameters
 from utils.constants import COLUMNS_TO_REMOVE
@@ -33,47 +33,75 @@ class InputSettings:
     NEW_MODEL_RUNNING = False
     EXISTING_ALGORITHMS = dict()
     FEATURES_COLUMNS_OPTIONS = []
+    TUNE_MODEL_FEATURES = []
     USERS_SELECTED_FEATURES = dict()
+    USERS_SELECTED_TARGET_FEATURES = dict()
     THREADS = []
     RESULTS_METRICS_DATA = dict()
     FLIGHT_ROUTES = []
 
     RESULTS_TABLE_ALGORITHM = ""
     RESULTS_TABLE_FLIGHT_ROUTE = ""
+    RESULTS_TABLE_SIMILARITY_FUNCTION = ""
+
+    TUNE_MODEL_PATH = ""
+    TUNE_MODEL_INPUT_FEATURES = []
+    TUNE_MODEL_TARGET_FEATURES = []
+    TUNE_MODEL_WINDOW_SIZE = []
+    TUNE_MODEL_ALGORITHM = ""
+    TUNE_MODEL_RESULTS_PATH = ""
 
     """
     Attributes
     ----------
     
-    TRAINING_DATA_PATH              : str
+    TRAINING_DATA_PATH                   : str
 
-    TEST_DATA_PATH                  : str
+    TEST_DATA_PATH                       : str
             
-    RESULTS_DATA_PATH               : str
+    RESULTS_DATA_PATH                    : str
             
-    ALGORITHMS                      : set
+    ALGORITHMS                           : set
             
-    SIMILARITY_SCORES               : set
+    SIMILARITY_SCORES                    : set
             
-    SAVE_MODEL                      : bool
+    SAVE_MODEL                           : bool
             
-    NEW_MODEL_RUNNING               : bool
+    NEW_MODEL_RUNNING                    : bool
             
-    EXISTING_ALGORITHMS             : dict
+    EXISTING_ALGORITHMS                  : dict
             
-    FEATURES_COLUMNS_OPTIONS        : list
+    FEATURES_COLUMNS_OPTIONS             : list
+    
+    TUNE_MODEL_FEATURES                  : list
             
-    USERS_SELECTED_FEATURES         : dict
+    USERS_SELECTED_FEATURES              : dict
+    
+    USERS_SELECTED_TARGET_FEATURES       : dict
             
-    THREADS                         : list
+    THREADS                              : list
             
-    RESULTS_METRICS_DATA            : dict
+    RESULTS_METRICS_DATA                 : dict
             
-    FLIGHT_ROUTES                   : list
+    FLIGHT_ROUTES                        : list
             
-    RESULTS_TABLE_ALGORITHM         : str
+    RESULTS_TABLE_ALGORITHM              : str
             
-    RESULTS_TABLE_FLIGHT_ROUTE      : str
+    RESULTS_TABLE_FLIGHT_ROUTE           : str
+    
+    RESULTS_TABLE_SIMILARITY_FUNCTION    : str
+        
+    TUNE_MODEL_PATH                      : str
+    
+    TUNE_MODEL_INPUT_FEATURES            : list
+    
+    TUNE_MODEL_TARGET_FEATURES           : list
+    
+    TUNE_MODEL_WINDOW_SIZE               : list
+    
+    TUNE_MODEL_ALGORITHM                 : str
+    
+    TUNE_MODEL_RESULTS_PATH              : str
 
     Methods
     -------
@@ -157,10 +185,13 @@ class InputSettings:
             Description | Set the data set columns which were loaded from the test data set
             
     get_users_selected_features()
-            Description | Get the data set columns which were selected by the user for a given algorithm
+            Description | Get the data set columns which were selected by the user for the input
             
-    set_users_selected_features(algorithm_name, features_list)
-            Description | Set the data set columns which were selected by the user for a given algorithm
+    get_users_selected_target_features()
+            Description | Get the data set columns which were selected by the user for the target
+            
+    set_users_selected_features(features_list, target_features_list)
+            Description | Set the data set columns which were selected by the user
             
     add_new_thread(new_thread)
             Description | Add new running thread to the system
@@ -177,8 +208,8 @@ class InputSettings:
     set_SVR(algorithm_parameters)
             Description | Set the parameters which were chosen by the user for SVR
             
-    set_Linear_Regression(algorithm_parameters)
-            Description | Set the parameters which were chosen by the user for Linear Regression
+    set_MLP(algorithm_parameters)
+            Description | Set the parameters which were chosen by the user for MLP
             
     get_algorithm_set_function(algorithm_name)
             Description | Switch to get the set function for a given algorithm
@@ -207,6 +238,50 @@ class InputSettings:
             
     reset_input_settings_params()
             Description | Reset all the values of input settings attributes
+            
+    set_results_selected_similarity_function(similarity_function)
+            Description | Set the variable which indicates which similarity function should be shown in the results
+                          table at this moment
+                          
+    get_results_selected_similarity_function()
+            Description | Get the variable which indicates which similarity function should be shown in the results 
+                          table at this moment
+
+    set_tune_model_input_path(input_path)
+            Description | Set the path for data for tuning a model
+
+    get_tune_model_input_path()
+            Description | Get the path for data for tuning a model
+            
+    set_tune_model_features()
+            Description | Set features list for tune model flow
+            
+    get_tune_model_features()
+            Description | Get features list for tune model flow
+            
+    set_tune_model_configuration(input_features, target_features, window_size, algorithm)
+         Description | Set full configuration for tune model flow
+         
+    get_tune_flow_input_features()
+            Description | Get input features for tune model flow
+
+    get_tune_flow_target_features()
+            Description | Get target features for tune model flow
+            
+    get_tune_flow_window_size()
+            Description | Get window sizes for tune model flow
+
+    get_tune_flow_algorithm()
+            Description | Get algorithm for tune model flow
+            
+    set_tune_model_results_path_path(self, results_path):
+        Description | Set the path for results for tuning a model
+
+    get_tune_model_results_path_path(self):
+        Description | Get the path for results for tuning a model
+
+     get_window_size(algorithm)
+        Description | Get the chosen window size for a specific algorithm
 
     """
 
@@ -345,8 +420,18 @@ class InputSettings:
         return InputSettings.USERS_SELECTED_FEATURES
 
     @staticmethod
-    def set_users_selected_features(algorithm_name, features_list):
-        InputSettings.USERS_SELECTED_FEATURES[algorithm_name] = features_list
+    def get_users_selected_target_features():
+        return InputSettings.USERS_SELECTED_TARGET_FEATURES
+
+    @staticmethod
+    def set_users_selected_features(features_list, target_features_list):
+
+        InputSettings.USERS_SELECTED_FEATURES = dict()
+        InputSettings.USERS_SELECTED_TARGET_FEATURES = dict()
+
+        for algorithm in InputSettings.ALGORITHMS:
+            InputSettings.USERS_SELECTED_FEATURES[algorithm] = features_list
+            InputSettings.USERS_SELECTED_TARGET_FEATURES[algorithm] = target_features_list
 
     @staticmethod
     def add_new_thread(new_thread):
@@ -382,13 +467,13 @@ class InputSettings:
             svr_setting_function(algorithm_parameters[param])
 
     @staticmethod
-    def set_Linear_Regression(algorithm_parameters):
-        InputSettings.ALGORITHMS.add("Linear Regression")
+    def set_MLP(algorithm_parameters):
+        InputSettings.ALGORITHMS.add("MLP")
 
-        # Iterate over all parameters for Linear Regression algorithm
+        # Iterate over all parameters for MLP algorithm
         for param in algorithm_parameters:
-            linear_regression_setting_function = getattr(linear_regression_hyper_parameters, "set_" + param)
-            linear_regression_setting_function(algorithm_parameters[param])
+            mlp_setting_function = getattr(mlp_hyper_parameters, "set_" + param)
+            mlp_setting_function(algorithm_parameters[param])
 
     @staticmethod
     def get_algorithm_set_function(algorithm_name):
@@ -398,7 +483,7 @@ class InputSettings:
         switcher = {
             algorithms[0]: InputSettings.set_LSTM,
             algorithms[1]: InputSettings.set_SVR,
-            algorithms[2]: InputSettings.set_Linear_Regression,
+            algorithms[2]: InputSettings.set_MLP,
             algorithms[3]: InputSettings.set_Random_Forest
         }
 
@@ -441,10 +526,97 @@ class InputSettings:
         InputSettings.NEW_MODEL_RUNNING = False
         InputSettings.EXISTING_ALGORITHMS = dict()
         InputSettings.FEATURES_COLUMNS_OPTIONS = []
+        InputSettings.TUNE_MODEL_FEATURES = []
         InputSettings.USERS_SELECTED_FEATURES = dict()
         InputSettings.THREADS = []
         InputSettings.RESULTS_METRICS_DATA = dict()
         InputSettings.FLIGHT_ROUTES = []
 
+        InputSettings.USERS_SELECTED_FEATURES = dict()
+        InputSettings.USERS_SELECTED_TARGET_FEATURES = dict()
+
         InputSettings.RESULTS_TABLE_ALGORITHM = ""
         InputSettings.RESULTS_TABLE_FLIGHT_ROUTE = ""
+
+        InputSettings.TUNE_MODEL_PATH = ""
+        InputSettings.TUNE_MODEL_INPUT_FEATURES = []
+        InputSettings.TUNE_MODEL_TARGET_FEATURES = []
+        InputSettings.TUNE_MODEL_WINDOW_SIZE = []
+        InputSettings.TUNE_MODEL_ALGORITHM = ""
+
+    @staticmethod
+    def set_results_selected_similarity_function(similarity_function):
+        InputSettings.RESULTS_TABLE_SIMILARITY_FUNCTION = similarity_function
+
+    @staticmethod
+    def get_results_selected_similarity_function():
+        return InputSettings.RESULTS_TABLE_SIMILARITY_FUNCTION
+
+    @staticmethod
+    def set_tune_model_input_path(input_path):
+        InputSettings.TUNE_MODEL_PATH = input_path
+
+    @staticmethod
+    def get_tune_model_input_path():
+        return InputSettings.TUNE_MODEL_PATH
+
+    @staticmethod
+    def set_tune_model_features():
+
+        # Get the columns in the data set in order to do feature selection by the user
+        df_input = pd.read_csv(f'{InputSettings.TUNE_MODEL_PATH}')
+        columns = list(df_input.columns)
+
+        # Cleaning meta-data - Remove columns from a yaml file, such as: index, flight_id etc.
+        for column in COLUMNS_TO_REMOVE:
+            if column in columns:
+                columns.remove(column)
+
+        InputSettings.TUNE_MODEL_FEATURES = columns
+
+    @staticmethod
+    def get_tune_model_features():
+        return InputSettings.TUNE_MODEL_FEATURES
+
+    @staticmethod
+    def set_tune_model_configuration(input_features, target_features, window_size, algorithm):
+        InputSettings.TUNE_MODEL_INPUT_FEATURES = input_features
+        InputSettings.TUNE_MODEL_TARGET_FEATURES = target_features
+        InputSettings.TUNE_MODEL_WINDOW_SIZE = window_size
+        InputSettings.TUNE_MODEL_ALGORITHM = algorithm
+
+    @staticmethod
+    def get_tune_flow_input_features():
+        return InputSettings.TUNE_MODEL_INPUT_FEATURES
+
+    @staticmethod
+    def get_tune_flow_target_features():
+        return InputSettings.TUNE_MODEL_TARGET_FEATURES
+
+    @staticmethod
+    def get_tune_flow_window_size():
+        return InputSettings.TUNE_MODEL_WINDOW_SIZE
+
+    @staticmethod
+    def get_tune_flow_algorithm():
+        return InputSettings.TUNE_MODEL_ALGORITHM
+
+    @staticmethod
+    def set_tune_model_results_path(results_path):
+        InputSettings.TUNE_MODEL_RESULTS_PATH = results_path
+
+    @staticmethod
+    def get_tune_model_results_path():
+        return InputSettings.TUNE_MODEL_RESULTS_PATH
+
+    @staticmethod
+    def get_window_size(algorithm):
+
+        switcher = {
+            "LSTM": lstm_hyper_parameters.get_window_size(),
+            "SVR": svr_hyper_parameters.get_window_size(),
+            "MLP": mlp_hyper_parameters.get_window_size(),
+            "Random Forest": random_forest_hyper_parameters.get_window_size()
+        }
+
+        return switcher.get(algorithm, 1)

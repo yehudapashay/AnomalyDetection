@@ -11,11 +11,15 @@ Methods to handle repeatable actions which are done by algorithms frame
 '''
 
 import os
+from tkinter.font import Font, ITALIC, BOLD
+
 import yaml
 
+from tkinter import messagebox
 from os.path import dirname, abspath
 from tkinter.ttk import Combobox
-from gui.widgets_configurations.helper_methods import set_widget_to_left
+from gui.shared.constants import CROSS_WINDOWS_SETTINGS
+from gui.widgets_configurations.helper_methods import set_widget_to_left, set_info_configuration
 
 try:
     import Tkinter as tk
@@ -32,7 +36,7 @@ except ImportError:
     py3 = True
 
 
-def set_widget_for_param(frame, text, combobox_values, param_key, y_coordinate):
+def set_widget_for_param(frame, text, combobox_values, param_key, y_coordinate, filename):
     """
     Sets a dynamic pair of label and combo box by given parameters
     :param frame: frame to work on
@@ -40,12 +44,22 @@ def set_widget_for_param(frame, text, combobox_values, param_key, y_coordinate):
     :param combobox_values: possible values for the combo box
     :param param_key:  the key for the pair which will be used in the frame
     :param y_coordinate: y-axis coordinate
+    :param filename: the name of the algorithm
     :return: dynamic pair of label and combo box
     """
 
     relative_x = 0
 
     try:
+        # Creating a photo image object to use for information button
+        info_dir = CROSS_WINDOWS_SETTINGS.get('INFORMATION_DIR')
+        info_file = CROSS_WINDOWS_SETTINGS.get('INFORMATION_FILE')
+        base_folder = os.path.dirname(__file__)
+        dir_path = os.path.join(base_folder, info_dir)
+        photo_location = os.path.join(dir_path, info_file)
+        global info_photo
+        info_photo = tk.PhotoImage(file=photo_location)
+        # frame.info_png_img = tk.PhotoImage(file=photo_location)
 
         # Create new label
         frame.algorithm_param = tk.Label(frame)
@@ -54,6 +68,25 @@ def set_widget_for_param(frame, text, combobox_values, param_key, y_coordinate):
 
         # Set the widget in the left side of the block
         set_widget_to_left(frame.algorithm_param)
+
+        i_styling = Font(family="Times New Roman",
+                         size=12,
+                         weight=BOLD,
+                         slant=ITALIC)
+        frame.algorithm_param_info_button = tk.Button(frame,
+                                                      text="i",
+                                                      bg="sky blue",
+                                                      font=i_styling,
+                                                      command=lambda: on_info_button_click(attribute=text,
+                                                                                           filename=
+                                                                                           filename.replace(
+                                                                                               '_params',
+                                                                                               ''))
+                                                      )
+        frame.algorithm_param_info_button.configure(cursor="hand2")
+        frame.algorithm_param_info_button.place(relx=relative_x + 0.25, rely=y_coordinate, height=25, width=25)
+        # frame.algorithm_param_info_button.configure(image=info_photo)
+        # set_info_configuration(frame.algorithm_param_info_button, image=info_photo)
 
         # Create new combo box - possible values for the label
         frame.algorithm_param_combo = Combobox(frame, state="readonly", values=combobox_values)
@@ -67,6 +100,37 @@ def set_widget_for_param(frame, text, combobox_values, param_key, y_coordinate):
         print("Source: gui/algorithm_frame_options/shared/helper_methods.py")
         print("Function: set_widget_for_param")
         print("error: " + str(e))
+
+
+def on_info_button_click(attribute, filename):
+    """
+    Information data for a given attribute
+    :param attribute: algorithm parameter
+    :param filename: algorithm name
+    :return: information data within a message box
+    """
+
+    messagebox.askokcancel(
+        title='{0} information window'.format(attribute),
+        message=load_attribute_data(attribute, filename)
+    )
+
+
+def load_attribute_data(attribute, filename):
+    """
+    Loads the data about specific attribute for a specific algorithm - according to the filename
+    (which must be the algorithm name)
+    :param filename: algorithm name - required
+    :param attribute: the chosen attribute we want the data about
+    :return: detailed data about a given attribute
+    """
+
+    sub_path = os.path.join(dirname(abspath(__file__)), 'attributes_information')
+    path = os.path.join(sub_path, filename)
+
+    with open(path) as file:
+        algorithm_attributes = yaml.load(file, Loader=yaml.FullLoader)
+        return algorithm_attributes[attribute]
 
 
 def load_algorithm_constants(filename):

@@ -1,0 +1,27 @@
+# Anomaly Detection of GPS Spoofing Attacks on UAVs
+# Authors: Lior Pizman & Yehuda Pashay
+# GitHub: https://github.com/liorpizman/AnomalyDetection
+# DataSets: 1. ADS-B dataset 2. simulated data
+# ----------------------------------------------------------------------------------
+# Serialized attributes data used for SVR algorithm
+# ----------------------------------------------------------------------------------
+
+# The values are the text params for each label in SVR frame options
+# Note: same as the names in the UI, first list in svr_params.yaml
+
+Kernel: "Parameter information : Specifies the kernel type to be used in the algorithm. It must be one of
+'linear', 'poly', 'rbf', 'sigmoid', 'precomputed' or a callable. If none is given, 'rbf' will be used. If a callable
+ is given it is used to pre-compute the kernel matrix."
+
+Gamma: "Parameter information : Kernel coefficient for 'rbf', 'poly' and 'sigmoid'. If gamma='scale' (default) is
+passed then it uses 1 / (n_features * X.var()) as value of gamma, if 'auto', uses 1 / n_features."
+
+Epsilon: "Parameter information : Epsilon in the epsilon-SVR model. It specifies the epsilon-tube within which no
+penalty is associated in the training loss function with points predicted within a distance epsilon from the actual
+value."
+
+Window size: "Parameter information : The amount of records to look back for a prediction of one sample."
+
+Threshold percent: "Parameter information : A value between 0 and 1. The value defines a percentage which is used to
+find a numeric value of a threshold. The threshold is set to be a value greater than X% (chosen percentage) from
+the total training prediction scores."

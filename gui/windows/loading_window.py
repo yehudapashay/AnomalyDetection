@@ -13,11 +13,12 @@ Loading window which is part of GUI application
 import os
 import threading
 
-from tkinter.font import Font
+from tkinter.font import Font, BOLD
+from gui.shared.helper_methods import strfdelta
 from gui.widgets.animated_gif import AnimatedGif
 from datetime import timedelta
 from timeit import default_timer as timer
-from string import Template
+from gui.widgets.hover_button import HoverButton
 from gui.widgets.menubar import Menubar
 from gui.shared.constants import LOADING_WINDOW_SETTINGS, CROSS_WINDOWS_SETTINGS
 from gui.widgets_configurations.helper_methods import set_logo_configuration, set_copyright_configuration, \
@@ -47,9 +48,6 @@ class LoadingWindow(tk.Frame):
     reset_widgets()
             Description | Reset check bar values
 
-    back_window()
-            Description | Handle a click on back button
-
     stop_model_process()
             Description | Handle a click on stop button
 
@@ -62,6 +60,8 @@ class LoadingWindow(tk.Frame):
     loading_process()
             Description | Run chosen models and move to results window
 
+    show_model_process_label(y_coordinate, algorithm):
+            Description | Show model process label on the screen
     """
 
     def __init__(self, parent, controller):
@@ -82,9 +82,12 @@ class LoadingWindow(tk.Frame):
         # Disables ability to tear menu bar into own window
         self.controller.option_add('*tearOff', 'FALSE')
         system_logo = CROSS_WINDOWS_SETTINGS.get('LOGO')
+        stop_logo = LOADING_WINDOW_SETTINGS.get('STOP')
         photo_location = os.path.join(system_logo)
-        global logo_img
+        stop_photo_location = os.path.join(stop_logo)
+        global logo_img, stop_img
         logo_img = tk.PhotoImage(file=photo_location)
+        stop_img = tk.PhotoImage(file=stop_photo_location)
 
         # Page header
         self.logo_png = tk.Button(self)
@@ -93,30 +96,27 @@ class LoadingWindow(tk.Frame):
 
         self.instructions = tk.Label(self)
         self.instructions.place(relx=0.015, rely=0.3, height=32, width=635)
-        self.instructions.configure(text='''Loading model, please wait...''')
+        self.instructions.configure(text='''Creating models and runs them, please wait...''',
+                                    font=Font(size=9, weight=BOLD))
         set_widget_to_left(self.instructions)
 
         # Page body
-        loading_gif = LOADING_WINDOW_SETTINGS.get('LOADING_GIF')
-        delay_between_frames = LOADING_WINDOW_SETTINGS.get('DELAY_BETWEEN_FRAMES')
+        self.stop_png = tk.Button(self)
+        self.loading_gif_animation = LOADING_WINDOW_SETTINGS.get('LOADING_GIF')
+        self.delay_between_frames = LOADING_WINDOW_SETTINGS.get('DELAY_BETWEEN_FRAMES')
 
         self.title_font = Font(family='Helvetica', size=12, weight="bold")
 
-        self.loading_gif = AnimatedGif(self, loading_gif, delay_between_frames)
-        self.loading_gif.place(relx=0.1, rely=0.35, height=330, width=600)
+        self.loading_gif = AnimatedGif(self, self.loading_gif_animation, self.delay_between_frames)
+        self.loading_gif.place(relx=0.1, rely=0.38, height=330, width=600)
 
         self.clock_label = tk.Label(self, text="", font=self.title_font)
-        self.clock_label.place(relx=0.38, rely=0.7, height=32, width=150)
+        self.clock_label.place(relx=0.38, rely=0.73, height=32, width=150)
 
         # Page footer
-        self.stop_button = tk.Button(self, command=self.stop_model_process)
+        self.stop_button = HoverButton(self, command=self.stop_model_process)
         self.stop_button.place(relx=0.813, rely=0.839, height=25, width=81)
         set_button_configuration(self.stop_button, text='''Stop''')
-
-        self.back_button = tk.Button(self, command=self.back_window)
-        self.back_button.place(relx=0.017, rely=0.839, height=25, width=81)
-        set_button_configuration(self.back_button, text='''Back''')
-        self.back_button.configure(state='disabled')
 
         self.copyright = tk.Label(self)
         self.copyright.place(relx=0, rely=0.958, height=25, width=750)
@@ -133,26 +133,26 @@ class LoadingWindow(tk.Frame):
 
         pass
 
-    def back_window(self):
-        """
-        Handle back button click
-        :return: previous window
-        """
-
-        self.controller.reinitialize_frame("SimilarityFunctionsWindow")
-
     def stop_model_process(self):
         """
         Handle stop button click
         :return: freeze state
         """
 
-        self.back_button.configure(state='active')
-        self.stop_button.configure(state='disabled')
-        try:
-            self.model_process_thread.join()
-        except Exception:
-            pass
+        if self.event.isSet():  # check if the event flag is True or False
+            self.event.clear()
+            self.stop_button.configure(text='Resume')
+            self.loading_gif.place_forget()
+            self.stop_png.place(relx=0.385, rely=0.5, height=132, width=132)
+            set_logo_configuration(self.stop_png, image=stop_img)
+        else:
+            self.event.set()
+            self.stop_button.configure(text='Stop')
+            self.stop_png.place_forget()
+            self.loading_gif.place(relx=0.1, rely=0.35, height=330, width=600)
+
+        self.start_time = timer() - self.prev_saved_time
+        self.update_clock()
 
     def reinitialize(self):
         """
@@ -160,9 +160,12 @@ class LoadingWindow(tk.Frame):
         :return: new frame view
         """
 
+        self.stop_button.configure(text='Stop')
+        self.event = threading.Event()
         self.model_process_thread = threading.Thread(name='model_process', target=self.loading_process)
         self.model_process_thread.start()
         self.start_time = timer()
+        self.event.set()
         self.update_clock()
 
     def update_clock(self):
@@ -171,8 +174,11 @@ class LoadingWindow(tk.Frame):
         :return: updated time
         """
 
+        if not self.event.isSet():
+            return
         now = timer()
         duration = timedelta(seconds=now - self.start_time)
+        self.prev_saved_time = now - self.start_time
         self.clock_label.configure(text=strfdelta(duration, '%H:%M:%S'))
         self.controller.after(200, self.update_clock)
 
@@ -182,31 +188,46 @@ class LoadingWindow(tk.Frame):
         :return: results window
         """
 
-        self.controller.run_models()
+        similarity_score, test_data_path, results_path, new_model_running = self.controller.init_models()
+
+        if new_model_running:
+            chosen_algorithms = self.controller.get_algorithms()
+        else:
+            chosen_algorithms = set(self.controller.get_existing_algorithms().keys())
+
+        y_coordinate = 0.34
+        enumerate_details = 0
+
+        for algorithm in chosen_algorithms:
+            if new_model_running:
+                print_text = '''{0} : Creates a new model and runs the test data on it...'''.format(algorithm)
+            else:
+                print_text = '''{0} : Runs the test data...'''.format(algorithm)
+
+            if enumerate_details < 4:
+                self.algorithm_process_finished = tk.Label(self)
+                self.algorithm_process_finished.place(relx=0.015, rely=y_coordinate, height=22, width=400)
+                self.algorithm_process_finished.configure(text=print_text)
+                set_widget_to_left(self.algorithm_process_finished)
+
+                y_coordinate += 0.04
+
+            self.controller.run_models(algorithm, similarity_score, test_data_path,
+                                       results_path, new_model_running, self.event)
+
+            enumerate_details += 1
+
         self.controller.reinitialize_frame("ResultsWindow")
 
+    def show_model_process_label(self, y_coordinate, algorithm):
+        """
+        Show model process label on the screen
+        :param y_coordinate: y place coordinate
+        :param algorithm: which algorithm to display
+        :return: new label
+        """
 
-class DeltaTemplate(Template):
-    """
-    A class used to create a delta template
-    """
-    delimiter = "%"
-
-
-def strfdelta(tdelta, fmt):
-    """
-    Create string structure for the time
-    :param tdelta: time delta
-    :param fmt: format
-    :return: time as a string
-    """
-
-    d = {"D": tdelta.days}
-    hours, rem = divmod(tdelta.seconds, 3600)
-    minutes, seconds = divmod(rem, 60)
-    d["H"] = '{:02d}'.format(hours)
-    d["M"] = '{:02d}'.format(minutes)
-    d["S"] = '{:02d}'.format(seconds)
-    t = DeltaTemplate(fmt)
-
-    return t.substitute(**d)
+        self.model_process_finished = tk.Label(self)
+        self.model_process_finished.place(relx=0.015, rely=y_coordinate, height=22, width=215)
+        self.model_process_finished.configure(text='''{0} model runs on the test...'''.format(algorithm))
+        set_widget_to_left(self.model_process_finished)

@@ -12,7 +12,8 @@ widget_names:
   - "Kernel"
   - "Gamma"
   - "Epsilon"
-  - "Threshold"
+  - "Window size"
+  - "Threshold percent"
 
 # The values are the keys of the parameters in the helper method file
 # For example: 'frame.parameters[param_key] = frame.algorithm_param_combo'  (param_key is each value in the list)
@@ -22,6 +23,7 @@ widget_param_keys:
   - "kernel"
   - "gamma"
   - "epsilon"
+  - "window_size"
   - "threshold"
 
 # All the lists in the bottom represent the values in each combobox which will be displayed.
@@ -44,9 +46,31 @@ svr_epsilon:
   - 0.15
   - 0.2
 
+svr_window:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+  - 15
+
 svr_threshold:
   - 0.99
   - 0.98
   - 0.97
   - 0.96
   - 0.95
+  - 0.94
+  - 0.93
+  - 0.92
+  - 0.91
+  - 0.90

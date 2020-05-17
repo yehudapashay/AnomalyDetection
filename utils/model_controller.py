@@ -6,7 +6,7 @@ DataSets: 1. ADS-B dataset 2. simulated data
 ---
 Controller which mapping all the actions between the setting in the input and the user interface
 '''
-
+from models.tuning.tuning_execution import TuningExecution
 from utils.input_settings import InputSettings
 from utils.models_execution import ModelsExecution
 
@@ -48,7 +48,7 @@ class ModelController:
     set_saving_model(save_model)
             Description | Set the variable which indicates whether the user want to save the current model or not
 
-    run_models()
+    run_models(algorithm, similarity_score, test_data_path, results_path, new_model_running)
             Description | Execute models creation/loading process
 
     set_new_model_running(new_model_running)
@@ -65,8 +65,8 @@ class ModelController:
     get_features_columns_options()
             Description | Get the data set columns which were loaded from the test data set
 
-    set_users_selected_features(algorithm_name, features_list)
-            Description | Set the data set columns which were selected by the user for a given algorithm
+    set_users_selected_features(features_list, target_features_list)
+            Description | Set the data set columns which were selected by the user
 
     add_new_thread(new_thread)
             Description | Add new running thread to the system
@@ -109,6 +109,62 @@ class ModelController:
             Description | Get a dictionary which includes all the algorithm which were chosen by the user in a load
                           existing models flow
 
+    get_similarity_functions()
+                Description | Get all similarity functions which were chosen by the user
+
+    set_results_selected_similarity_function(similarity_function)
+            Description | Set the variable which indicates which similarity function should be shown in the results
+                          table at this moment
+
+    get_results_selected_similarity_function()
+            Description | Get the variable which indicates which similarity function should be shown in the results
+                          table at this moment
+
+    get_results_metrics_data()
+            Description |  Get the dictionary which includes all the metrics for the current flow
+
+    set_tune_model_input_path(input_path)
+            Description | Set the path for data for tuning a model
+
+    get_tune_model_input_path()
+            Description | Get the path for data for tuning a model
+
+    set_tune_model_features()
+            Description | Set features list for tune model flow
+
+    get_tune_model_features()
+            Description | Get features list for tune model flow
+
+     set_tune_model_configuration(input_features, target_features, window_size, algorithm)
+         Description | Set full configuration for tune model flow
+
+    get_tune_flow_input_features()
+            Description | Get input features for tune model flow
+
+    get_tune_flow_target_features()
+            Description | Get target features for tune model flow
+
+    get_tune_flow_window_size()
+            Description | Get window sizes for tune model flow
+
+    get_tune_flow_algorithm()
+            Description | Get algorithm for tune model flow
+
+     set_tune_model_results_path_path(self, results_path):
+        Description | Set the path for results for tuning a model
+
+    get_tune_model_results_path_path(self):
+        Description | Get the path for results for tuning a model
+
+    run_tuning()
+            Description | Execute models tuning process
+
+    get_window_size(algorithm)
+            Description | Get the chosen window size for a specific algorithm
+
+    init_models()
+            Description | Init models dictionary
+
      """
 
     def __init__(self, gui_controller):
@@ -150,8 +206,9 @@ class ModelController:
     def set_saving_model(self, save_model):
         InputSettings.set_saving_model(save_model)
 
-    def run_models(self):
-        ModelsExecution.run_models()
+    def run_models(self, algorithm, similarity_score, test_data_path, results_path, new_model_running, event):
+        ModelsExecution.run_models(algorithm, similarity_score, test_data_path,
+                                   results_path, new_model_running, event)
 
     def set_new_model_running(self, new_model_running):
         InputSettings.set_new_model_running(new_model_running)
@@ -165,8 +222,8 @@ class ModelController:
     def get_features_columns_options(self):
         return InputSettings.get_features_columns_options()
 
-    def set_users_selected_features(self, algorithm_name, features_list):
-        InputSettings.set_users_selected_features(algorithm_name, features_list)
+    def set_users_selected_features(self, features_list, target_features_list):
+        InputSettings.set_users_selected_features(features_list, target_features_list)
 
     def add_new_thread(self, new_thread):
         InputSettings.add_new_thread(new_thread)
@@ -203,3 +260,57 @@ class ModelController:
 
     def get_existing_algorithms(self):
         return InputSettings.get_existing_algorithms()
+
+    def get_similarity_functions(self):
+        return InputSettings.get_similarity()
+
+    def set_results_selected_similarity_function(self, similarity_function):
+        InputSettings.set_results_selected_similarity_function(similarity_function)
+
+    def get_results_selected_similarity_function(self):
+        return InputSettings.get_results_selected_similarity_function()
+
+    def get_results_metrics_data(self):
+        return InputSettings.get_results_metrics_data()
+
+    def set_tune_model_input_path(self, input_path):
+        InputSettings.set_tune_model_input_path(input_path)
+
+    def get_tune_model_input_path(self):
+        return InputSettings.get_tune_model_input_path()
+
+    def set_tune_model_features(self):
+        InputSettings.set_tune_model_features()
+
+    def get_tune_model_features(self):
+        return InputSettings.get_tune_model_features()
+
+    def set_tune_model_configuration(self, input_features, target_features, window_size, algorithm):
+        InputSettings.set_tune_model_configuration(input_features, target_features, window_size, algorithm)
+
+    def get_tune_flow_input_features(self):
+        return InputSettings.get_tune_flow_input_features()
+
+    def get_tune_flow_target_features(self):
+        return InputSettings.get_tune_flow_target_features()
+
+    def get_tune_flow_window_size(self):
+        return InputSettings.get_tune_flow_window_size()
+
+    def get_tune_flow_algorithm(self):
+        return InputSettings.get_tune_flow_algorithm()
+
+    def set_tune_model_results_path_path(self, results_path):
+        InputSettings.set_tune_model_results_path(results_path)
+
+    def get_tune_model_results_path_path(self):
+        return InputSettings.get_tune_model_results_path()
+
+    def run_tuning(self):
+        TuningExecution.run_tuning()
+
+    def get_window_size(self, algorithm):
+        return InputSettings.get_window_size(algorithm)
+
+    def init_models(self):
+        return ModelsExecution.init_models()

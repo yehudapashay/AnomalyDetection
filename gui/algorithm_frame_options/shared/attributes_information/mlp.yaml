@@ -1,0 +1,28 @@
+# Anomaly Detection of GPS Spoofing Attacks on UAVs
+# Authors: Lior Pizman & Yehuda Pashay
+# GitHub: https://github.com/liorpizman/AnomalyDetection
+# DataSets: 1. ADS-B dataset 2. simulated data
+# ----------------------------------------------------------------------------------
+# Serialized attributes data used for MLP algorithm
+# ----------------------------------------------------------------------------------
+
+# The values are the text params for each label in MLP frame options
+# Note: same as the names in the UI, first list in mlp_params.yaml
+
+Hidden layer sizes: "Parameter information : The ith element represents the number of neurons in the ith hidden layer."
+
+Activation: "Parameter information : Activation function for the hidden layer."
+
+Solver: "Parameter information : The solver for weight optimization."
+
+Alpha: "Parameter information : L2 penalty (regularization term) parameter."
+
+Random state: "Parameter information : If int, random_state is the seed used by the random number generator; If
+RandomState instance, random_state is the random number generator; If None, the random number generator is the
+RandomState instance used by np.random."
+
+Window size: "Parameter information : The amount of records to look back for a prediction of one sample."
+
+Threshold percent: "Parameter information : A value between 0 and 1. The value defines a percentage which is used to
+find a numeric value of a threshold. The threshold is set to be a value greater than X% (chosen percentage) from
+the total training prediction scores."

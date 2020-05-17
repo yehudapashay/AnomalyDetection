@@ -12,6 +12,7 @@ New model window which is part of GUI application
 
 import os
 
+from gui.widgets.hover_button import HoverButton
 from gui.widgets.menubar import Menubar
 from gui.shared.helper_methods import set_path, CROSS_WINDOWS_SETTINGS, clear_text
 from gui.widgets_configurations.helper_methods import set_copyright_configuration, set_logo_configuration, \
@@ -107,7 +108,7 @@ class NewModel(tk.Frame):
         self.training_input = tk.Entry(self)
         self.training_input.place(relx=0.195, rely=0.4, height=25, relwidth=0.624)
 
-        self.training_btn = tk.Button(self, command=self.set_input_path)
+        self.training_btn = HoverButton(self, command=self.set_input_path)
         self.training_btn.place(relx=0.833, rely=0.4, height=25, width=60)
         set_button_configuration(self.training_btn, text='''Browse''')
 
@@ -120,7 +121,7 @@ class NewModel(tk.Frame):
         self.test_input = tk.Entry(self)
         self.test_input.place(relx=0.195, rely=0.5, height=25, relwidth=0.624)
 
-        self.test_btn = tk.Button(self, command=self.set_test_path)
+        self.test_btn = HoverButton(self, command=self.set_test_path)
         self.test_btn.place(relx=0.833, rely=0.5, height=25, width=60)
         set_button_configuration(self.test_btn, text='''Browse''')
 
@@ -133,26 +134,22 @@ class NewModel(tk.Frame):
         self.results_input = tk.Entry(self)
         self.results_input.place(relx=0.195, rely=0.6, height=25, relwidth=0.624)
 
-        self.results_btn = tk.Button(self, command=self.set_results_path)
+        self.results_btn = HoverButton(self, command=self.set_results_path)
         self.results_btn.place(relx=0.833, rely=0.6, height=25, width=60)
         set_button_configuration(self.results_btn, text='''Browse''')
 
         # Page footer
-        self.next_button = tk.Button(self, command=self.next_window)
+        self.next_button = HoverButton(self, command=self.next_window)
         self.next_button.place(relx=0.813, rely=0.839, height=25, width=81)
         set_button_configuration(self.next_button, text='''Next''')
 
-        self.back_button = tk.Button(self, command=self.back_window)
+        self.back_button = HoverButton(self, command=self.back_window)
         self.back_button.place(relx=0.017, rely=0.839, height=25, width=81)
         set_button_configuration(self.back_button, text='''Back''')
 
         self.copyright = tk.Label(self)
         self.copyright.place(relx=0, rely=0.958, height=25, width=750)
         set_copyright_configuration(self.copyright)
-
-        # -------------------------------should be replaced at final submission  -------------------------------------
-        self.set_inputs_second_permutation()
-        # ------------------------------- end ------------------------------------------------------------------------
 
     def reset_widgets(self):
         """
@@ -228,29 +225,3 @@ class NewModel(tk.Frame):
         self.controller.set_new_model_test_input_path(self.test_input.get())
         self.controller.set_new_model_results_input_path(self.results_input.get())
         self.controller.set_features_columns_options()
-
-    # -------------------------------should be replaced at final submission  -------------------------------------
-
-    def set_inputs_first_permutation(self):
-        self.set_permutations(
-            training_path="C:\\Users\\Lior\\Desktop\\ADS-B Data Set\\train",
-            test_path="C:\\Users\\Lior\\Desktop\\ADS-B Data Set\\test",
-            results_path="C:\\Users\\Lior\\Desktop\\ADS-B Data Set\\results"
-        )
-
-    def set_inputs_second_permutation(self):
-        self.set_permutations(
-            training_path="C:\\Users\\Yehuda Pashay\\Desktop\\flight_data\\data_set\\train",
-            test_path="C:\\Users\\Yehuda Pashay\\Desktop\\flight_data\\data_set\\test",
-            results_path="C:\\Users\\Yehuda Pashay\\Desktop\\flight_data\\data_set\\results\\new_model_results"
-        )
-
-    def set_permutations(self, training_path, test_path, results_path):
-        self.controller.set_new_model_training_input_path(training_path)
-        self.controller.set_new_model_test_input_path(test_path)
-        self.controller.set_new_model_results_input_path(results_path)
-        self.training_input.insert(0, training_path)
-        self.test_input.insert(0, test_path)
-        self.results_input.insert(0, results_path)
-
-    # ------------------------------- end ------------------------------------------------------------------------

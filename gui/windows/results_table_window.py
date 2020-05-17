@@ -12,14 +12,15 @@ Results table window which is part of GUI application
 
 import os
 
+from tkinter.font import Font, BOLD
 from ipython_genutils.py3compat import xrange
 from gui.shared.constants import CROSS_WINDOWS_SETTINGS
-from gui.shared.helper_methods import trim_unnecessary_chars
+from gui.shared.helper_methods import trim_unnecessary_chars, transform_list
+from gui.widgets.hover_button import HoverButton
 from gui.widgets.menubar import Menubar
 from gui.widgets.table.table import Table
 from gui.widgets_configurations.helper_methods import set_logo_configuration, set_button_configuration, \
     set_copyright_configuration, set_widget_to_left
-from utils.input_settings import InputSettings
 
 try:
     import Tkinter as tk
@@ -56,6 +57,9 @@ class ResultsTableWindow(tk.Frame):
     reinitialize_results_table()
             Description | Reinitialize results table and view
 
+    generate_table_columns_list()
+            Description | Generates a list of columns for table init by given attacks
+
     """
 
     def __init__(self, parent, controller):
@@ -76,9 +80,12 @@ class ResultsTableWindow(tk.Frame):
         # Disables ability to tear menu bar into own window
         self.controller.option_add('*tearOff', 'FALSE')
         system_logo = CROSS_WINDOWS_SETTINGS.get('LOGO')
+        comparison_logo = CROSS_WINDOWS_SETTINGS.get('RESULTS')
         photo_location = os.path.join(system_logo)
-        global logo_img
+        comparison_location = os.path.join(comparison_logo)
+        global logo_img, comparison_img
         logo_img = tk.PhotoImage(file=photo_location)
+        comparison_img = tk.PhotoImage(file=comparison_location)
 
         # Page header
         self.logo_png = tk.Button(self)
@@ -88,11 +95,17 @@ class ResultsTableWindow(tk.Frame):
         # Page body
         self.results_table = Table(self,
                                    columns=["Metric", "Down attack", "Up attack", "Fore attack", "Random attack"],
-                                   column_minwidths=[None, None, None])
-        self.results_table.pack(expand=True, fill=X, padx=0, pady=0)
+                                   header_anchor=CENTER,
+                                   column_minwidths=[1, 1, 1],
+                                   pady=2)
+        self.results_table.pack(fill=X, padx=18, pady=182)
+
+        self.comparison_png = tk.Button(self)
+        self.comparison_png.place(relx=0.65, rely=0.7, height=150, width=145)
+        set_logo_configuration(self.comparison_png, image=comparison_img)
 
         # Page footer
-        self.back_button = tk.Button(self, command=self.back_window)
+        self.back_button = HoverButton(self, command=self.back_window)
         self.back_button.place(relx=0.017, rely=0.839, height=25, width=81)
         set_button_configuration(self.back_button, text='''Back''')
 
@@ -140,10 +153,12 @@ class ResultsTableWindow(tk.Frame):
                 chosen_algorithms = list(self.controller.get_existing_algorithms().keys())
 
             flight_routes = list(self.controller.get_flight_routes())
+            similarity_functions = list(self.controller.get_similarity_functions())
 
-            # selected values without transformation to UI components
+            # selected values with transformation to UI components
             selected_algorithm = self.controller.get_results_selected_algorithm()
             selected_flight_route = self.controller.get_results_selected_flight_route()
+            selected_similarity_function = self.controller.get_results_selected_similarity_function()
 
             original_algorithm = ""
 
@@ -157,22 +172,39 @@ class ResultsTableWindow(tk.Frame):
                 if trim_unnecessary_chars(route).lower() == selected_flight_route.lower():
                     original_flight_route = route
 
-            current_title = 'Results for algorithm: [{0}] and flight route: [{1}]'.format(selected_algorithm,
-                                                                                          selected_flight_route)
+            original_similarity_function = ""
+
+            for similarity_function in similarity_functions:
+                if trim_unnecessary_chars(similarity_function).lower() == selected_similarity_function.lower():
+                    original_similarity_function = similarity_function
+
+            current_title = 'Test set attacks comparison table'
 
             self.instructions = tk.Label(self)
-            self.instructions.place(relx=0.015, rely=0.3, height=32, width=635)
+            self.instructions.place(relx=0.015, rely=0.29, height=35, width=635)
             self.instructions.configure(text=current_title)
             set_widget_to_left(self.instructions)
 
-            results_data = InputSettings.get_results_metrics_data()
+            results_data = self.controller.get_results_metrics_data()
 
-            data = results_data[original_algorithm][original_flight_route]
+            data = results_data[original_algorithm][original_flight_route][original_similarity_function]
 
             attacks_columns = list(data.values())[0]
 
+            transform_attacks_list = transform_list(list(attacks_columns.keys()))
+            table_columns = self.generate_table_columns_list(transform_attacks_list)
+
+            self.results_table.pack_forget()
+            # self.results_table.destroy()
+            self.results_table = Table(self,
+                                       columns=table_columns,
+                                       header_anchor=CENTER,
+                                       column_minwidths=[1, 1, 1],
+                                       pady=2)
+            self.results_table.pack(fill=X, padx=18, pady=182)
+
             # Creates a 2D array, all set to 0
-            rows = len(data.keys())
+            rows = len(data.keys()) + 2
             columns = len(attacks_columns)
             zero_matrix = [[0 for i in xrange(columns)] for i in xrange(rows)]
             self.results_table.set_data(zero_matrix)
@@ -180,10 +212,70 @@ class ResultsTableWindow(tk.Frame):
             # Set the updated values to the table
             for i, metric in enumerate(data.keys()):
                 attacks_data = data[metric]
-                self.results_table.cell(i, 0, metric.upper())
+                if metric.upper() == 'DELAY':
+                    self.results_table.cell(i, 0, metric.upper() + " [sec]")
+                else:
+                    self.results_table.cell(i, 0, metric.upper())
                 for j, attack in enumerate(attacks_data.keys()):
                     self.results_table.cell(i, j + 1, attacks_data[attack])
 
-        except Exception:
+            self.results_table.cell(rows - 2, 0, "Attack duration [sec]")
+            for i in range(1, columns + 1):
+                self.results_table.cell(rows - 2, i, str(float(results_data[original_algorithm][original_flight_route][
+                                                                   list(attacks_columns.keys())[
+                                                                       i - 1] + "_attack_duration"])))
+
+            self.results_table.cell(rows - 1, 0, "Flight duration [sec]")
+            for i in range(1, columns + 1):
+                self.results_table.cell(rows - 1, i, str(float(results_data[original_algorithm][original_flight_route][
+                                                                   list(attacks_columns.keys())[
+                                                                       i - 1] + "_duration"])))
+
+            permutation_styling = Font(family="Times New Roman",
+                                       size=11,
+                                       weight=BOLD)
+
+            self.algorithm_label = tk.Label(self)
+            self.algorithm_label.place(relx=0.015, rely=0.68, height=25, width=300)
+            self.algorithm_label.configure(
+                text="Algorithm: {0}".format(selected_algorithm),
+                font=permutation_styling,
+                fg='blue')
+            set_widget_to_left(self.algorithm_label)
+
+            self.similarity_function_label = tk.Label(self)
+            self.similarity_function_label.place(relx=0.015, rely=0.72, height=25, width=300)
+            self.similarity_function_label.configure(
+                text="Similarity function: {0}".format(selected_similarity_function),
+                font=permutation_styling,
+                fg='blue')
+            set_widget_to_left(self.similarity_function_label)
+
+            self.route_label = tk.Label(self)
+            self.route_label.place(relx=0.015, rely=0.76, height=25, width=300)
+            self.route_label.configure(
+                text="Flight route: {0}".format(selected_flight_route),
+                font=permutation_styling,
+                fg='blue')
+            set_widget_to_left(self.route_label)
+
+
+        except Exception as e:
             # Handle error in setting new data in the table
-            pass
+            print("Source: gui/windows/results_table_window.py")
+            print("Function: reinitialize_results_table")
+            print("error: " + str(e))
+
+    def generate_table_columns_list(self, attacks_list):
+        """
+        Generates a list of columns for table init by given attacks
+        :param attacks_list: all existing attacks in the test data set
+        :return: full columns list for creating a new results table
+        """
+
+        table_columns = ["Metric"]
+
+        for attack in attacks_list:
+            table_columns.append(attack)
+
+        return table_columns

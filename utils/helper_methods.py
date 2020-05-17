@@ -8,19 +8,18 @@ Methods to handle repeatable actions which are done by the model controller
 '''
 
 import os
-import shutil
 import warnings
+import math
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import yaml
-import matplotlib.pyplot as plt
 
+from datetime import datetime
 from numpy import dot
 from numpy.linalg import norm
 from scipy.spatial import distance
-from datetime import datetime
-from sklearn.metrics import pairwise, mean_squared_error
-from models.lstm.lstm_hyper_parameters import lstm_hyper_parameters
+from sklearn.metrics import pairwise, mean_squared_error, roc_curve, auc
+
 from utils.constants import NON_ATTACK_VALUE, ATTACK_VALUE
 
 
@@ -112,13 +111,16 @@ def anomaly_score(input_vector, output_vector, similarity_function):
 
     # Switch between chosen similarity function by the user
     switcher = {
-        "Cosine similarity": cosine_similarity(input_vector, output_vector),
-        "Euclidean distance": euclidean_distance(input_vector, output_vector),
-        "Mahalanobis distance": mahalanobis_distance(input_vector, output_vector),
-        "MSE": mse_distance(input_vector, output_vector)
+        "Cosine similarity": lambda input_vector, output_vector: cosine_similarity(input_vector, output_vector),
+        "Euclidean distance": lambda input_vector, output_vector: euclidean_distance(input_vector, output_vector),
+        "Mahalanobis distance": lambda input_vector, output_vector: mahalanobis_distance(input_vector, output_vector),
+        "MSE": lambda input_vector, output_vector: mse_distance(input_vector, output_vector)
     }
 
-    return switcher.get(similarity_function, euclidean_distance(input_vector, output_vector))
+    return switcher.get(
+        similarity_function,
+        lambda input_vector, output_vector: cosine_similarity(input_vector, output_vector)
+    )(input_vector, output_vector)
 
 
 def anomaly_score_multi(input_vectors, output_vectors, similarity_function):
@@ -209,27 +211,15 @@ def get_threshold(scores, percent):
     return sorted(scores)[index - 1]
 
 
-def get_thresholds(list_scores, percent):
+def get_method_scores(prediction, attack_start, attack_end, add_window_size, window_size):
     """
-    get threshold for classification from this percent of training set that had lower scores
-    (e.g get the threshold error in which 95% of training set had lower values than)
-    :param list_scores: list of scores
-    :param percent: chosen value by the user
-    :return: list of thresholds
-    """
-
-    return [get_threshold(scores, percent) for scores in list_scores]
-
-
-def get_method_scores(prediction, run_new_model, attack_start, attack_end, add_window_size=False):
-    """
-    get previous method scores (TPR, FPR, delay)
+    get previous method scores (tpr, fpr, accuracy, detection delay)
     :param prediction: predictions
-    :param run_new_model: Indicator whether the current flow is new model creation or not
     :param attack_start: Index for the first attack raw
     :param attack_end: Index for the last attack raw
     :param add_window_size: Indicator whether to add a window size or not
-    :return:  TPR, FPR, delay
+    :param window_size: current chosen window size by the user
+    :return: tpr, fpr, accuracy, detection delay, attack_duration
     """
 
     fp = 0
@@ -239,13 +229,15 @@ def get_method_scores(prediction, run_new_model, attack_start, attack_end, add_w
 
     detection_delay = -1
     lower = attack_start
+    upper = attack_end
 
     # Enrich the process with a window size technique
-    if run_new_model and add_window_size:
-        lower = attack_start - lstm_hyper_parameters.get_window_size() + 1
+    if add_window_size:
+        assert window_size  # check if window_size != None
+        lower = attack_start - window_size + 1
+        upper = attack_end - window_size + 1
 
     # Indexes validation
-    upper = attack_end
     assert len(prediction) >= upper
     assert upper > lower
 
@@ -254,35 +246,44 @@ def get_method_scores(prediction, run_new_model, attack_start, attack_end, add_w
     # Proceed the raws without the attack
     for i in range(lower):
         if prediction[i] == 1:
-            fp += 1
+            fp += 1  # Non-anomalous record was classified as a record with anomaly (False Positive)
         else:
-            tn += 1
+            tn += 1  # Non-anomalous record was classified as a record without anomaly (True Negative)
 
     # Proceed the raws that include the attack
     for i in range(lower, upper):
         if prediction[i] == 1:
-            tp += 1
+            tp += 1  # Anomalous record was classified as a record with anomaly (True Positive)
             if not was_detected:
                 was_detected = True
+                # Calculate Detection Delay
                 detection_delay = i - lower
         else:
-            fn += 1
+            fn += 1  # Anomalous record was classified as a record without anomaly (False Negative)
 
     # Proceed rest of the raws without the attack
     for i in range(upper, len(prediction)):
         if prediction[i] == 1:
-            fp += 1
+            fp += 1  # Non-anomalous record was classified as a record with anomaly (False Positive)
         else:
-            tn += 1
+            tn += 1  # Non-anomalous record was classified as a record without anomaly (True Negative)
 
     # In case the attack was not detected
     if not was_detected:
         detection_delay = upper - lower
 
+    # Calculate True Positive Rate (Sensitivity/ Recall / Hit-Rate)
     tpr = tp / (tp + fn)
+
+    # Calculate False Positive Rate (Fall-Out)
     fpr = fp / (fp + tn)
 
-    return tpr, fpr, detection_delay
+    # Calculate Accuracy
+    acc = (tp + tn) / (tp + tn + fp + fn)
+
+    attack_duration = upper - lower
+
+    return tpr, fpr, acc, detection_delay, attack_duration
 
 
 def get_attack_boundaries(df_label):
@@ -294,8 +295,10 @@ def get_attack_boundaries(df_label):
 
     attack_start = df_label[df_label != NON_ATTACK_VALUE].first_valid_index()
     partial_df = df_label.truncate(before=attack_start)
-    attack_end = partial_df[partial_df != ATTACK_VALUE].first_valid_index() - 1
-
+    if partial_df[partial_df != ATTACK_VALUE].first_valid_index():  # ADS-B Data
+        attack_end = partial_df[partial_df != ATTACK_VALUE].first_valid_index() - 1
+    else:  # Simulated Data
+        attack_end = len(df_label) - 1
     return attack_start, attack_end
 
 
@@ -322,7 +325,7 @@ def create_directories(path):
     """
 
     if os.path.exists(path) and os.path.isdir(path):
-        shutil.rmtree(path)
+        return
     else:
         os.makedirs(path)
 
@@ -337,13 +340,17 @@ def get_current_time():
     return now.strftime("%b-%d-%Y-%H-%M-%S")
 
 
-def report_results(results_dir_path, test_data_path, FLIGHT_ROUTES, algorithm_name, verbose=1):
+def report_results(results_dir_path, test_data_path, FLIGHT_ROUTES, algorithm_name, similarity_function,
+                   routes_duration, attack_duration, verbose=1):
     """
     report all the results, according to the algorithm in the input
     :param results_dir_path: the path of results directory
     :param test_data_path: the path of test dataset directory
     :param FLIGHT_ROUTES: names of existing flight routes
     :param algorithm_name: the name of the algorithm that we want to report about
+    :param similarity_function: the similarity function we currently report about
+    :param routes_duration: routes time duration
+    :param attack_duration: attacks time duration
     :param verbose: default = 1 , otherwise = can be changed to 0
     :return: all the reports are saved to suitable csv files
     """
@@ -356,9 +363,15 @@ def report_results(results_dir_path, test_data_path, FLIGHT_ROUTES, algorithm_na
     for flight_route in FLIGHT_ROUTES:
         flight_dir = os.path.join(test_data_path, flight_route)
         ATTACKS = get_subdirectories(flight_dir)
-        results_data[algorithm_name][flight_route] = dict()
 
-    metrics_list = ['fpr', 'tpr', 'delay']
+        try:
+            results_data[algorithm_name][flight_route]
+        except KeyError:
+            results_data[algorithm_name][flight_route] = dict()
+
+        results_data[algorithm_name][flight_route][similarity_function] = dict()
+
+    metrics_list = ['fpr', 'tpr', 'acc', 'delay']
 
     for metric in metrics_list:
 
@@ -366,18 +379,34 @@ def report_results(results_dir_path, test_data_path, FLIGHT_ROUTES, algorithm_na
 
         # Iterate over all the flight routes in order to save each results' permutation in a csv file
         for i, flight_route in enumerate(FLIGHT_ROUTES):
-            df = pd.read_csv(f'{results_dir_path}/{flight_route}/{flight_route}_{metric}.csv')
+            flight_route_metric_path = os.path.join(
+                *[str(results_dir_path), str(flight_route), str(flight_route) + '_' + str(metric) + '.csv']
+            )
+            df = pd.read_csv(f"{flight_route_metric_path}")
             mean = df.mean(axis=0).values
             std = df.std(axis=0).values
-            output = [f'{round(x, 2)}±{round(y, 2)}%' for x, y in zip(mean, std)]
+            output = []
+            for x, y in zip(mean, std):
+                if math.isnan(y):
+                    output.append(f"{round(x, 2)}")
+                else:
+                    output.append(f"{round(x, 2)}±{round(y, 2)}%")
             results.loc[i] = output
 
-            results_data[algorithm_name][flight_route][metric] = dict()
+            results_data[algorithm_name][flight_route][similarity_function][metric] = dict()
 
             # Iterate over all existing attacks in test data set
             for j, attack in enumerate(ATTACKS):
-                results_data[algorithm_name][flight_route][metric][attack] = dict()
-                results_data[algorithm_name][flight_route][metric][attack] = output[j]
+                results_data[algorithm_name][flight_route][similarity_function][metric][attack] = dict()
+                results_data[algorithm_name][flight_route][similarity_function][metric][attack] = output[j]
+
+                results_data[algorithm_name][flight_route][attack + '_duration'] = dict()
+                results_data[algorithm_name][flight_route][attack + '_duration'] = \
+                    routes_duration[attack][0]
+
+                results_data[algorithm_name][flight_route][attack + '_attack_duration'] = dict()
+                results_data[algorithm_name][flight_route][attack + '_attack_duration'] = \
+                    attack_duration[attack][0]
 
         results.index = FLIGHT_ROUTES
 
@@ -387,61 +416,8 @@ def report_results(results_dir_path, test_data_path, FLIGHT_ROUTES, algorithm_na
         # Update evaluated evaluation metric for each attack according to the current algorithm and metric
         InputSettings.update_results_metrics_data(results_data)
 
-        results.to_csv(f'{results_dir_path}/final_{metric}.csv')
-
-
-def is_excluded_flight(route, csv):
-    """
-    return if excluded flight
-    :param route: flight route
-    :param csv: csv of a flight
-    :return:  if excluded
-    """
-
-    EXCLUDE_FLIGHTS = load_exclude_flights()
-
-    return route in EXCLUDE_FLIGHTS and csv in EXCLUDE_FLIGHTS[route]
-
-
-def load_from_yaml(filename, key):
-    """
-    load all the data from a file which is suitable to a given key
-    :param filename: the file we want to load from
-    :param key: the list we want to load
-    :return: list of values according to a given key
-    """
-
-    with open(r'.\\' + filename + '.yaml') as file:
-        loaded_file = yaml.load(file, Loader=yaml.FullLoader)
-
-        return loaded_file.get(key)
-
-
-def load_exclude_flights():
-    """
-    load all the flights which are excluded
-    :return: list of the excluded flights
-    """
-
-    return load_from_yaml('lstm_model_settings', 'EXCLUDE_FLIGHTS')
-
-
-def load_attacks():
-    """
-    load all the attacks in the test set
-    :return: list of the attacks
-    """
-
-    return load_from_yaml('names', 'ATTACKS')
-
-
-def load_flight_routes():
-    """
-    load all the flight routes
-    :return: list of the flight routes
-    """
-
-    return load_from_yaml('names', 'FLIGHT_ROUTES')
+        final_metric_path = os.path.join(*[str(results_dir_path), 'final_' + str(metric) + '.csv'])
+        results.to_csv(f"{final_metric_path}")
 
 
 def plot(data, xlabel, ylabel, title, plot_dir):
@@ -459,14 +435,15 @@ def plot(data, xlabel, ylabel, title, plot_dir):
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
-    plt.savefig(f'{plot_dir}/{title}.png')
+    plt_path = os.path.join(*[str(plot_dir), str(title) + '.png'])
+    plt.savefig(f"{plt_path}")
 
     plt.clf()
 
     # plt.show()
 
 
-def plot_reconstruction_error_scatter(scores, labels, threshold, plot_dir, title="Outlier Score - After Training", ):
+def plot_reconstruction_error_scatter(scores, labels, threshold, plot_dir, title="Outlier Score - After Training"):
     """
     plot reconstruction error as a scatter plot and save it to a given directory
     :param scores: input scores
@@ -485,8 +462,81 @@ def plot_reconstruction_error_scatter(scores, labels, threshold, plot_dir, title
     plt.title(title)
 
     plt.hlines(y=threshold, xmin=plt.xlim()[0], xmax=plt.xlim()[1], colors='r')
-
-    plt.savefig(f'{plot_dir}/{title}.png')
+    plt_path = os.path.join(*[str(plot_dir), str(title) + '.png'])
+    plt.savefig(f"{plt_path}")
 
     plt.clf()
     # plt.show()
+
+
+# def plot_roc(y_true, y_pred, plot_dir, title="ROC Curve"):
+#     """
+#     plot roc curve by computing Area Under the Curve (AUC) using the trapezoidal rule
+#     :param y_true: ground truth
+#     :param y_pred: predictions
+#     :param plot_dir: the directory we want to save the plot into
+#     :param title: title of the plot
+#     :return:
+#     """
+#
+#     true = y_true.reshape(-1, 1).transpose(1, 0)[0]
+#     pred = np.array(y_pred)
+#
+#     fpr, tpr, _ = roc_curve(true, pred)
+#     auc_score = auc(fpr, tpr)
+#
+#     plt.figure(figsize=(7, 6))
+#     plt.plot(fpr, tpr, color='blue', label='ROC (AUC = %0.4f)' % auc_score)
+#     plt.legend(loc='lower right')
+#     plt.title(title)
+#     plt.xlabel("FPR")
+#     plt.ylabel("TPR")
+#
+#     plt_path = os.path.join(*[str(plot_dir), str(title) + '.png'])
+#     plt.savefig(f"{plt_path}")
+#
+#     plt.clf()
+#     # plt.show()
+
+
+def plot_prediction_performance(Y_train, X_pred, results_path,
+                                title, x_label="Index [Second]", y_label="Sensor's Value"):
+    """
+    plot training performance of model
+    :param Y_train: actual data
+    :param X_pred: predicted data
+    :param results_path: results path
+    :param title: plot title
+    :param x_label: plot x axis label
+    :param y_label: plot y axis label
+    :return:
+    """
+
+    plt.plot(X_pred, 'darkorange', label="Predicted")
+    plt.plot(Y_train, 'navy', label="Actual")
+    plt.title(title)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.legend(loc='lower right')
+    plt.gcf().set_size_inches(15, 6)
+
+    results_plt_path = os.path.join(*[str(results_path), str(title) + '.png'])
+    plt.savefig(f"{results_plt_path}")
+
+    plt.clf()
+    # plt.show()
+
+
+def multi_mean(X1):
+    """
+    Calculate mean value of 3D arrays for each sample by the column
+    :param X1: data frame
+    :return: calculated MSE
+    """
+
+    transformed_X1 = np.zeros((X1.shape[0], X1.shape[2]))
+
+    for i, value in enumerate(X1):
+        transformed_X1[i] = value.mean(axis=0)
+
+    return transformed_X1

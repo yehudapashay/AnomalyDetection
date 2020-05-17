@@ -7,13 +7,16 @@ DataSets: 1. ADS-B dataset 2. simulated data
 Methods to handle repeatable actions which are done by the gui controller
 '''
 
-import os
 import yaml
 import tkinter
 import json
 
+
+from string import Template
 from tkinter.filedialog import askdirectory, askopenfilename
 from gui.shared.constants import *
+from gui.shared.mappers.algorithms import algorithms_mapper
+from gui.shared.mappers.similarity_functions import similarity_functions_mapper
 from gui.widgets_configurations.helper_methods import set_widget_to_left
 
 try:
@@ -63,30 +66,6 @@ def set_file_path():
         return ""
 
 
-def set_training_path():
-    """
-    Set the path of the train data set directory
-    :return: training path
-    """
-
-    global training_path
-    training_path = set_path()
-
-    return training_path
-
-
-def set_test_path():
-    """
-    Set the path of the test data set directory
-    :return: test path
-    """
-
-    global test_path
-    test_path = set_path()
-
-    return test_path
-
-
 def load_classification_methods(list_name):
     """
     Load classification methods from a yaml file according to list's key
@@ -94,7 +73,10 @@ def load_classification_methods(list_name):
     :return: list's values
     """
 
-    with open(r'.\shared\classification_methods.yaml') as file:
+    ROOT_DIR = Path(__file__).parent.parent.parent
+    classification_methods_path = os.path.join(*[str(ROOT_DIR), 'gui', 'shared', 'classification_methods.yaml'])
+
+    with open(classification_methods_path) as file:
         classification_methods = yaml.load(file, Loader=yaml.FullLoader)
         return classification_methods.get(list_name)
 
@@ -147,17 +129,19 @@ def get_model_path(path):
 
     return ""
 
-def get_scalar_path(path):
+
+def get_scaler_path(path, scaler_name):
     """
-    Get the full path of an existing scalar (pkl file)
+    Get the full path of an existing scaler (pkl file)
     :param path: scalar directory path
+    :param scaler_name: can be 'train' or 'target'
     :return: full path of the file
     """
 
     files = os.listdir(path)
 
     for file in files:
-        if file.endswith('.h5') or file.endswith('_scalar.pkl'):
+        if file.endswith(scaler_name + '_scaler.pkl'):
             return os.path.join(path, file)
 
     return ""
@@ -187,7 +171,7 @@ def set_widget_for_param(frame, text, combobox_values, param_key, relative_x, y_
 
         # Create new combo box - possible values for the label
         frame.algorithm_param_combo = ttk.Combobox(frame, state="readonly", values=combobox_values)
-        frame.algorithm_param_combo.place(relx=relative_x + 0.1, rely=y_coordinate, height=25, width=170)
+        frame.algorithm_param_combo.place(relx=relative_x + 0.12, rely=y_coordinate, height=25, width=160)
         frame.algorithm_param_combo.current(0)
         frame.parameters[param_key] = frame.algorithm_param_combo
 
@@ -205,6 +189,18 @@ def trim_unnecessary_chars(text):
     :param text: text with unnecessary characters
     :return: clean text - text without unnecessary characters
     """
+
+    text = text.lower()
+
+    algorithm = algorithms_mapper(text)
+
+    if algorithm is not None:
+        return algorithm
+
+    similarity_function = similarity_functions_mapper(text)
+
+    if similarity_function is not None:
+        return similarity_function
 
     removed_apostrophe = text.replace("'", "")
     removed_underscore = removed_apostrophe.replace("_", " ")
@@ -236,3 +232,29 @@ def clear_text(widget):
     """
 
     widget.delete(0, 'end')
+
+
+class DeltaTemplate(Template):
+    """
+    A class used to create a delta template
+    """
+    delimiter = "%"
+
+
+def strfdelta(tdelta, fmt):
+    """
+    Create string structure for the time
+    :param tdelta: time delta
+    :param fmt: format
+    :return: time as a string
+    """
+
+    d = {"D": tdelta.days}
+    hours, rem = divmod(tdelta.seconds, 3600)
+    minutes, seconds = divmod(rem, 60)
+    d["H"] = '{:02d}'.format(hours)
+    d["M"] = '{:02d}'.format(minutes)
+    d["S"] = '{:02d}'.format(seconds)
+    t = DeltaTemplate(fmt)
+
+    return t.substitute(**d)
