@@ -18,6 +18,7 @@ Various uses of drones can be found in a variety of fields:
 * **Security** : used for patrolling and following suspects in real time.
 * **Rescue** : locating distressed people.
 * **Military** : intelligence operational activities.
+* **Commerce** : From food deliveries, through improved medical services to aerial photography.
 
 <img height=160 width=200 src="utils/images/drone/drone_background.jpg">
 
@@ -44,6 +45,38 @@ pip install -r requirements.txt
 
 ** See explanation below - Requirements File
 
+### Directories Structure
+
+**Train directory** - should be in th following structure: </br>
+* Chosen directory</br>
+    * Route_Name_1 - directory</br>
+        * without_anom.csv</br>
+    * Route_Name_2 - directory</br>
+        * without_anom.csv</br></br>
+
+**Test directory** - should be in th following structure:</br>
+* Chosen directory</br>
+    * Route_Name_1 - directory</br>
+        * Attack_Name_1 - directory</br>
+           * sensors_0.csv</br>
+        * Attack_Name_2 - directory</br>
+           * sensors_0.csv</br>
+        * Attack_Name_3 - directory</br>
+           * sensors_0.csv</br>
+        * Attack_Name_4 - directory</br>
+           * sensors_0.csv</br>
+    * Route_Name_2 - directory</br>
+        * Attack_Name_1 - directory</br>
+           * sensors_0.csv</br>
+        * Attack_Name_2 - directory</br>
+           * sensors_0.csv</br>
+        * Attack_Name_3 - directory</br>
+           * sensors_0.csv</br>
+        * Attack_Name_4 - directory</br>
+           * sensors_0.csv </br></br>
+
+**Results directory** - any directory to save all model configurations and results.</br>
+
 
 ## Getting Started
 
@@ -69,7 +102,8 @@ Insert simulated data / ADS-B data set input files<br/>
 Select algorithms for which you want to build anomaly detection models<br/>
 <img height=350 width=370 src="utils/images/new_model/algorithmsWindow.JPG">
 
-Select the values for each of the following parameters<br/>
+Select the values for each of the following parameters or run a **GridSearch** with chosen parameters<br/>
+The **decision function** of the GridSearch is **max AUC** and **min Delay**<br/>
 <img height=350 width=370 src="utils/images/new_model/parametersOptionsWindow.JPG">
 
 Please choose both input and target features<br/>
@@ -85,6 +119,9 @@ Insert input files for existing model<br/>
 Insert paths for existing models<br/>
 <img height=350 width=370 src="utils/images/load_model/existingsAlgorithmsWindow.JPG">
 
+View only - Hyper parameters from existing models<br/>
+<img height=350 width=370 src="utils/images/load_model/hyperParamsDisplayWindow.JPG">
+
 ** See next step under the title: Both Flows - similarity functions step
 
 ### Both Flows - similarity functions step
@@ -95,11 +132,14 @@ Choose similarity functions from the following options<br/>
 Loading model, please wait...<br/>
 <img height=350 width=370 src="utils/images/shared/loadingWindow.JPG">
 
-Choose an algorithm and a flight route in order to get the results<br/>
+Choose an algorithm and a flight route in order to get the results table or image plots<br/>
 <img height=350 width=370 src="utils/images/shared/resultsWindow.JPG">
 
-Choose an algorithm and a flight route in order to get the results<br/>
+Click on 'Export table' button to export the results table or click on 'Display & Export best algorithm params' button to export the **best params** for of the **GridSearch** <br/>
 <img height=350 width=370 src="utils/images/shared/resultsTableWindow.JPG">
+
+Click on 'Export to PNG' button to export the image plots<br/>
+<img height=350 width=370 src="utils/images/shared/resultsPlotWindow.jpg">
 
 ## Generated Machine Learning Models 
 
@@ -140,11 +180,15 @@ Choose an algorithm and a flight route in order to get the results<br/>
 | Attack | Description |
 | -- | -- |
 | Constant attack | Constant height and constant velocity. |
-| Changing height attack | Constant height and changing velocity. |
-| Changing velocity attack | Changing height and constant velocity. |
+| Changing valocity attack | Constant height and changing velocity. |
+| Changing height attack | Changing height and constant velocity. |
 | Mixed attack | Changing height and changing velocity. |
 <br/>
 
+# Anomaly detection process 
+
+<img height=600 width=800 src="utils/images/shared/anomaly_detection_process_1.JPG"></br></br>
+<img height=600 width=800 src="utils/images/shared/anomaly_detection_process_2.JPG"></br>
 # Time Series Regression
 
 Regression algorithms are not intended for time series predicting. Therefore, in order to make a prediction of a record based on N previous records, we will need to change the data. The data will be changed by taking the previous N records and flattening them into a vector. </br>
@@ -170,10 +214,10 @@ The **training vectors** should look like this:</br></br>
 # Metrics Comparison Results Table
 
 **Example:**<br/>
-Algorithm: Random Forest<br/>
+Algorithm: SVR<br/>
 Similarity function: Cosine similarity<br/>
 Route: Cross route<br/>
-<img height=235 width=680 src="utils/images/results/comparison_table.jpg">
+<img height=250 width=720 src="utils/images/results/comparison_table.jpg">
 
 # Outlier Score Testing Results - Visual Illustration
 
@@ -246,6 +290,16 @@ Route: Cross route<br/>
 **Bad test prediction example:**<br/>
 <img height=350 width=920 src="utils/images/mlp/actual_preticted_bad.png">
 
+# Receiver Operating Characteristic (ROC)
+
+## MLP - Results Example 
+
+**High AUC**<br/>
+<img height=350 width=920 src="utils/images/auc/high.png">
+
+**Low AUC**<br/>
+<img height=350 width=920 src="utils/images/auc/low.png">
+
 ## Research Risks
 
 * **Imbalanced data sets** - the amount of data about attacks is very small compared to drone's regular behavior data.
@@ -286,3 +340,34 @@ See the article [$ pip freeze > requirements.txt considered harmful](https://med
 
 See also the list of [contributors](https://github.com/liorpizman/AnomalyDetection/contributors) who participated in this project.
 
+## Appendices
+
+#### Main methods
+
+
+```
+1. run_models
+        Inputs      | algorithm, similarity function, test set path, results path, indicator - new/existing model
+        Description | Execute models creation/loading process
+        Output      | Plots + evaluation metrics per attack and algorithm
+
+2. toggle_results
+        Inputs      | selected_algorithm, selected_flight_route, selected_similarity_function
+        Description | Toggle permutation of results
+        Output      | A results table permutation (algorithm, flight route and similarity function)
+
+3. time_series_split
+        Inputs      | X, test_size=.2, number=False, output_numpy=True
+        Description | Splits a dataset according to the time the data was taken
+        Output      | X_train, X_test
+
+4. clean_data
+        Inputs      | Data
+        Description | Clean the data by different steps as part of data pre-processing
+        Output      | Clean data
+
+5. anomaly_score_multi
+        Inputs      | input vectors, output vectors, similarity function
+        Description | Calculate the anomaly of a multiple output prediction
+        Output      | anomaly score based on the similarity function
+```
