@@ -5,6 +5,6 @@ ipython_genutils==0.2.0
 matplotlib==3.0.2
 tensorflow==1.13.1
 scipy==1.4.1
-PyYAML==5.3.1
+PyYAML==5.4
 scikit_learn==0.22.2.post1
 pywin32==227
